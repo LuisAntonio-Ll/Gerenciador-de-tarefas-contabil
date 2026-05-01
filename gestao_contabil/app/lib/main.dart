@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'screens/login_screen.dart';
-import 'screens/home_screen.dart';
+import 'screens/main_screen.dart';
 
 void main() {
   runApp(const NrApp());
@@ -15,21 +16,17 @@ class NrApp extends StatelessWidget {
     return MaterialApp(
       title: 'NR',
       debugShowCheckedModeBanner: false,
-
-      // Definimos o tema global baseado no estilo "Be Organized" da foto
       theme: ThemeData(
         primarySwatch: Colors.indigo,
         textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
         useMaterial3: true,
       ),
-
-      // A tela que abre primeiro
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      supportedLocales: const [Locale('pt', 'BR')],
       initialRoute: '/login',
-
-      // Mapa de rotas do aplicativo
       routes: {
         '/login': (context) => LoginScreen(),
-        '/home': (context) => HomeScreen(),
+        '/home': (context) => const MainScreen(),
       },
     );
   }

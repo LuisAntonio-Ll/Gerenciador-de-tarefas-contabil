@@ -1,146 +1,225 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../services/api/api_service.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
+import '../services/api/api_service.dart';
 
 class HomeScreen extends StatefulWidget {
+  final int refreshKey;
+  final VoidCallback onNavigateToConcluidas;
+  final VoidCallback onRefresh;
+
+  const HomeScreen({
+    super.key,
+    required this.refreshKey,
+    required this.onNavigateToConcluidas,
+    required this.onRefresh,
+  });
+
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
   final ApiService _apiService = ApiService();
+  // Nullable para evitar LateInitializationError no IndexedStack
+  Future<dynamic>? _future;
+
+  @override
+  void didUpdateWidget(HomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.refreshKey != widget.refreshKey) {
+      setState(() => _future = _apiService.getTarefas());
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color(0xFFF8F9FB),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: Text(
-          "Gestão - NR",
-          style: GoogleFonts.poppins(
-            color: Color(0xFF4A47F5),
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.notifications_none, color: Colors.black54),
-            onPressed: () {},
-          ),
-          Padding(
-            padding: EdgeInsets.only(right: 16),
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: Colors.blue[100],
-              child: Icon(Icons.person, color: Colors.blue[900], size: 20),
+    // Inicialização lazy: só chama a API na primeira vez que o widget é renderizado
+    _future ??= _apiService.getTarefas();
+
+    return FutureBuilder<dynamic>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError || snapshot.data == null) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.wifi_off, size: 48, color: Colors.grey),
+                const SizedBox(height: 12),
+                Text(
+                  'Erro ao carregar dados',
+                  style: GoogleFonts.poppins(color: Colors.grey),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed: () =>
+                      setState(() => _future = _apiService.getTarefas()),
+                  child: const Text('Tentar novamente'),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
-      body: FutureBuilder<dynamic>(
-        future: _apiService.getTarefas(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError || snapshot.data == null) {
-            return Center(child: Text("Erro ao carregar dados ou lista vazia"));
-          }
-
-          //extraindo dados do back end
-          final data = snapshot.data;
-          final resumo = data['resumo'] as Map<String, dynamic>;
-          final tarefas = data['tarefas'] as List<dynamic>;
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeaderSection(),
-              _builderSummaryCards(resumo),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                child: Text(
-                  "PARA FAZER",
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: tarefas.length,
-                  itemBuilder: (context, index) {
-                    final tarefa = tarefas[index];
-                    return _buildTaskCard(tarefa);
-                  },
-                ),
-              ),
-            ],
           );
-        },
-      ),
-      bottomNavigationBar: _buildBottomNav(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _abrirModalCadastro,
-        backgroundColor: Color(0xFF4A47F5),
-        child: Icon(Icons.add, color: Colors.white),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+        }
+
+        final data = snapshot.data as Map<String, dynamic>;
+        final resumo = data['resumo'] as Map<String, dynamic>;
+        final tarefas = data['tarefas'] as List<dynamic>;
+        final agora = DateTime.now();
+
+        // ── Painel de Urgências: atrasadas + vencendo em até 3 dias ──────────
+        final limite = agora.add(const Duration(days: 3));
+        final urgentes =
+            tarefas.where((t) {
+              if (t['status'] == 'concluido') return false;
+              final prazo = DateTime.parse(t['prazo'] as String);
+              // Inclui tarefas já atrasadas E as que vencem nos próximos 3 dias
+              return prazo.isBefore(limite);
+            }).toList()..sort(
+              (a, b) => DateTime.parse(
+                a['prazo'] as String,
+              ).compareTo(DateTime.parse(b['prazo'] as String)),
+            );
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(agora),
+            _buildSummaryCards(resumo),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+              child: Row(
+                children: [
+                  Text(
+                    'ATENÇÃO NECESSÁRIA',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  if (urgentes.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.red[50],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${urgentes.length}',
+                        style: const TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: urgentes.isEmpty
+                  ? _buildEmptyState()
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: urgentes.length,
+                      itemBuilder: (context, index) =>
+                          _buildTaskCard(urgentes[index]),
+                    ),
+            ),
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildHeaderSection() {
+  // ───────────────────────────── Widgets de Apoio ──────────────────────────
+
+  Widget _buildHeader(DateTime agora) {
+    final meses = [
+      '',
+      'Janeiro',
+      'Fevereiro',
+      'Março',
+      'Abril',
+      'Maio',
+      'Junho',
+      'Julho',
+      'Agosto',
+      'Setembro',
+      'Outubro',
+      'Novembro',
+      'Dezembro',
+    ];
+    final dataStr = '${agora.day} de ${meses[agora.month]}, ${agora.year}';
     return Padding(
-      padding: EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Hoje,",
+            'Hoje,',
             style: GoogleFonts.poppins(
               fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
           ),
           Text(
-            "29 de Março, 2026",
-            style: GoogleFonts.poppins(color: Colors.grey),
+            dataStr,
+            style: GoogleFonts.poppins(color: Colors.grey, fontSize: 14),
           ),
         ],
       ),
     );
   }
 
-  Widget _builderSummaryCards(Map<String, dynamic> resumo) {
+  Widget _buildSummaryCards(Map<String, dynamic> resumo) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: EdgeInsets.only(left: 20, bottom: 20),
+      padding: const EdgeInsets.fromLTRB(20, 16, 0, 16),
       child: Row(
         children: [
           _statusCard(
-            "Pendentes",
+            'Pendentes',
             resumo['pendentes'].toString(),
-            Color(0xFFFFF3E0),
+            const Color(0xFFFFF3E0),
             Colors.orange,
           ),
           _statusCard(
-            "Atrasadas",
+            'Atrasadas',
             resumo['atrasadas'].toString(),
-            Color(0xFFFFEBEE),
+            const Color(0xFFFFEBEE),
             Colors.red,
           ),
-          _statusCard(
-            "Concluídas",
-            resumo['concluidas'].toString(),
-            Color(0xFFE8F5E9),
-            Colors.green,
+          // Card de Concluídas é um botão que abre a aba de histórico
+          GestureDetector(
+            onTap: widget.onNavigateToConcluidas,
+            child: Stack(
+              alignment: Alignment.topRight,
+              children: [
+                _statusCard(
+                  'Concluídas',
+                  resumo['concluidas'].toString(),
+                  const Color(0xFFE8F5E9),
+                  Colors.green,
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: Icon(
+                    Icons.arrow_forward_ios,
+                    size: 12,
+                    color: Colors.green[700],
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -149,9 +228,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _statusCard(String label, String value, Color bg, Color textCol) {
     return Container(
-      margin: EdgeInsets.only(right: 12),
-      padding: EdgeInsets.all(16),
-      width: 100,
+      margin: const EdgeInsets.only(right: 12),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(15),
@@ -161,16 +239,16 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(
             value,
             style: TextStyle(
-              fontSize: 20,
+              fontSize: 22,
               fontWeight: FontWeight.bold,
               color: textCol,
             ),
           ),
-          SizedBox(height: 4),
+          const SizedBox(height: 4),
           Text(
             label,
             style: TextStyle(
-              fontSize: 10,
+              fontSize: 11,
               color: textCol,
               fontWeight: FontWeight.w600,
             ),
@@ -180,32 +258,29 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  //metodo para excluir tarefa
-  void _confirmarExclusao(int id) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text("Exclui Tarefa?"),
-        content: Text("Essa ação não pode ser desfeita."),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("CANCELAR"),
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.check_circle_outline_rounded,
+            size: 72,
+            color: Colors.green[300],
           ),
-          TextButton(
-            onPressed: () async {
-              final sucesso = await _apiService.deletarTarefa(id);
-              if (sucesso) {
-                Navigator.pop(context); // Fecha o alerta
-                setState(() {}); // Recarrega o FutureBuilder da Home
-              } else {
-                // Opcional: mostrar um SnackBar de erro
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Erro ao excluir tarefa no servidor")),
-                );
-              }
-            },
-            child: Text("EXCLUIR", style: TextStyle(color: Colors.red)),
+          const SizedBox(height: 16),
+          Text(
+            'Tudo em dia! 🎉',
+            style: GoogleFonts.poppins(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Nenhuma tarefa urgente no momento.\nUse o Calendário para ver o planejamento.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(color: Colors.grey, fontSize: 13),
           ),
         ],
       ),
@@ -213,102 +288,116 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildTaskCard(dynamic tarefa) {
-    final dataPrazo = DateTime.parse(tarefa['prazo']);
+    final prazo = DateTime.parse(tarefa['prazo'] as String);
     final agora = DateTime.now();
+    final isAtrasada = prazo.isBefore(agora) && tarefa['status'] != 'concluido';
+    final diffDias = prazo
+        .difference(DateTime(agora.year, agora.month, agora.day))
+        .inDays;
 
-    bool isAtrasada =
-        dataPrazo.isBefore(agora) && tarefa['status'] != 'concluido';
-    bool isUrgente = tarefa['urgente'] ?? false;
+    Color statusColor = Colors.orange;
+    String statusLabel = 'Pendente';
+    if (isAtrasada) {
+      statusColor = Colors.red;
+      statusLabel = 'ATRASADA';
+    } else if (diffDias == 0) {
+      statusColor = Colors.red;
+      statusLabel = 'Vence HOJE';
+    } else if (diffDias == 1) {
+      statusColor = Colors.deepOrange;
+      statusLabel = 'Vence amanhã';
+    } else {
+      statusLabel = 'Em $diffDias dias';
+    }
 
     return Container(
-      margin: EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
+        border: Border(left: BorderSide(color: statusColor, width: 4)),
         boxShadow: [
           BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
         ],
       ),
       child: ListTile(
-        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         title: Text(
-          tarefa['cliente'],
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16),
+          tarefa['cliente'] as String,
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 15),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("CNPJ: ${tarefa['cnpj']}"),
             Text(
-              "Serviço: ${tarefa['tipo']}",
+              tarefa['tipo'] as String,
               style: TextStyle(
+                color: const Color(0xFF4A47F5),
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF4A47F5),
               ),
             ),
+            Text(
+              'CNPJ: ${tarefa['cnpj']}',
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
             if (tarefa['observacao'] != null &&
-                tarefa['observacao'].toString().isNotEmpty)
+                (tarefa['observacao'] as String).isNotEmpty)
               Text(
-                "Obs: ${tarefa['observacao']}",
+                'Obs: ${tarefa['observacao']}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12, color: Colors.black54),
               ),
-            SizedBox(height: 5),
-            Row(
-              children: [
-                Icon(
-                  Icons.calendar_today,
-                  size: 12,
-                  color: (isAtrasada || isUrgente) ? Colors.red : Colors.grey,
-                ),
-                SizedBox(width: 4),
-                Text(
-                  "Prazo: ${tarefa['prazo'].split('T')[0]}",
-                  style: TextStyle(
-                    color: (isAtrasada || isUrgente) ? Colors.red : Colors.grey,
-                    fontWeight: (isAtrasada || isUrgente)
-                        ? FontWeight.bold
-                        : FontWeight.normal,
-                  ),
-                ),
-                if (isAtrasada)
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: statusColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.schedule, size: 12, color: statusColor),
+                  const SizedBox(width: 4),
                   Text(
-                    " (ATRASADA)",
+                    '${tarefa['prazo'].toString().split('T')[0].split('-').reversed.join('/')}  •  $statusLabel',
                     style: TextStyle(
-                      color: Colors.red,
-                      fontSize: 10,
+                      fontSize: 11,
+                      color: statusColor,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
-        // MENU DE 3 PONTINHOS
         trailing: PopupMenuButton<String>(
-          icon: Icon(Icons.more_vert, color: Colors.grey),
+          icon: const Icon(Icons.more_vert, color: Colors.grey),
           onSelected: (value) {
-            if (value == 'edit') _abrirModalDetalhes(tarefa);
-            if (value == 'delete') _confirmarExclusao(tarefa['id']);
+            if (value == 'edit')
+              _abrirModalDetalhes(tarefa as Map<String, dynamic>);
+            if (value == 'delete') _confirmarExclusao(tarefa['id'] as int);
           },
           itemBuilder: (context) => [
-            PopupMenuItem(
+            const PopupMenuItem(
               value: 'edit',
               child: Row(
                 children: [
                   Icon(Icons.edit, size: 18),
                   SizedBox(width: 8),
-                  Text("Editar"),
+                  Text('Editar'),
                 ],
               ),
             ),
-            PopupMenuItem(
+            const PopupMenuItem(
               value: 'delete',
               child: Row(
                 children: [
                   Icon(Icons.delete, size: 18, color: Colors.red),
                   SizedBox(width: 8),
-                  Text("Excluir", style: TextStyle(color: Colors.red)),
+                  Text('Excluir', style: TextStyle(color: Colors.red)),
                 ],
               ),
             ),
@@ -318,300 +407,184 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildBottomNav() {
-    return BottomAppBar(
-      shape: CircularNotchedRectangle(),
-      notchMargin: 8,
-      child: Container(
-        height: 60,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            IconButton(
-              icon: Icon(Icons.dashboard, color: Color(0xFF4A47F5)),
-              onPressed: () {},
-            ),
-            IconButton(
-              icon: Icon(Icons.assignment, color: Colors.grey),
-              onPressed: () {},
-            ),
-            SizedBox(width: 40), // Espaço para o botão flutuante
-            IconButton(
-              icon: Icon(Icons.people, color: Colors.grey),
-              onPressed: () {},
-            ),
-            IconButton(
-              icon: Icon(Icons.settings, color: Colors.grey),
-              onPressed: () {},
-            ),
-          ],
-        ),
-      ),
+  // ───────────────────────── Modal de Edição ───────────────────────────────
+
+  void _abrirModalDetalhes(Map<String, dynamic> tarefa) {
+    final obsCtrl = TextEditingController(
+      text: tarefa['observacao'] as String? ?? '',
     );
-  }
-
-  void _abrirModalCadastro() {
-    final _clienteController = TextEditingController();
-    final _cnpjController = TextEditingController();
-    final _tipoController = TextEditingController(); // Agora é "Tarefa"
-    final _prazoController = TextEditingController();
-    final _obsController = TextEditingController(); // Novo campo
-
-    // Definindo as máscaras
-    final cnpjMask = MaskTextInputFormatter(
-      mask: '##.###.###/####-##',
-      filter: {"#": RegExp(r'[0-9]')},
+    final partes = (tarefa['prazo'] as String).split('T')[0].split('-');
+    final prazoCtrl = TextEditingController(
+      text: '${partes[2]}/${partes[1]}/${partes[0]}',
     );
     final prazoMask = MaskTextInputFormatter(
       mask: '##/##/####',
-      filter: {"#": RegExp(r'[0-9]')},
+      filter: {'#': RegExp(r'[0-9]')},
     );
+    String statusAtual = tarefa['status'] as String;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-          left: 20,
-          right: 20,
-          top: 20,
-        ),
-        child: SingleChildScrollView(
-          // Para telas menores não cortarem
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                "Nova Tarefa",
-                style: GoogleFonts.poppins(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModal) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+            left: 20,
+            right: 20,
+            top: 20,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-              ),
-              TextField(
-                controller: _clienteController,
-                decoration: InputDecoration(labelText: "Cliente"),
-              ),
-              TextField(
-                controller: _cnpjController,
-                inputFormatters: [cnpjMask], // Aplicando a máscara
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: "CNPJ",
-                  hintText: "00.000.000/0001-00",
+                Text(
+                  tarefa['cliente'] as String,
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              TextField(
-                controller: _tipoController,
-                decoration: InputDecoration(
-                  labelText: "Tarefa",
-                ), // Label alterada
-              ),
-              TextField(
-                controller: _prazoController,
-                inputFormatters: [prazoMask], // Aplicando a máscara
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: "Prazo",
-                  hintText: "DD/MM/AAAA",
+                Text(
+                  'CNPJ: ${tarefa['cnpj']}',
+                  style: const TextStyle(color: Colors.grey),
                 ),
-              ),
-              TextField(
-                controller: _obsController,
-                maxLines: 3, // Campo maior para observações
-                decoration: InputDecoration(
-                  labelText: "Observações (Opcional)",
+                const Divider(height: 28),
+                TextField(
+                  controller: prazoCtrl,
+                  inputFormatters: [prazoMask],
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Editar Prazo',
+                    hintText: 'DD/MM/AAAA',
+                    prefixIcon: const Icon(Icons.calendar_month),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
-              ),
-              SizedBox(height: 20),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF4A47F5),
-                  minimumSize: Size(double.infinity, 50),
+                const SizedBox(height: 14),
+                DropdownButtonFormField<String>(
+                  value: statusAtual,
+                  decoration: InputDecoration(
+                    labelText: 'Status da Tarefa',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'pendente',
+                      child: Text('Pendente'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'concluido',
+                      child: Text('Concluída ✓'),
+                    ),
+                  ],
+                  onChanged: (v) {
+                    if (v != null) setModal(() => statusAtual = v);
+                  },
                 ),
-                onPressed: () async {
-                  // Inverte a data de DD/MM/AAAA para AAAA-MM-DD pro Backend
-                  String dataFormatada = "";
-                  if (_prazoController.text.length == 10) {
-                    final partes = _prazoController.text.split('/');
-                    dataFormatada =
-                        '${partes[2]}-${partes[1]}-${partes[0]}T00:00:00';
-                  }
-
-                  final nova = {
-                    'cliente': _clienteController.text,
-                    'cnpj': _cnpjController.text,
-                    'tipo': _tipoController.text,
-                    'prazo': dataFormatada.isEmpty
-                        ? DateTime.now().toIso8601String()
-                        : dataFormatada,
-                    'observacao': _obsController.text, // Enviando pro banco
-                  };
-
-                  final sucesso = await _apiService.criarTarefas(nova);
-                  if (sucesso) {
-                    Navigator.pop(context);
-                    setState(() {}); // Recarrega a tela
-                  }
-                },
-                child: Text(
-                  "SALVAR TAREFA",
-                  style: TextStyle(color: Colors.white),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: obsCtrl,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    labelText: 'Observações',
+                    prefixIcon: const Icon(Icons.notes),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
-              ),
-              SizedBox(height: 20),
-            ],
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black87,
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(Icons.save, color: Colors.white),
+                  label: Text(
+                    'SALVAR ALTERAÇÕES',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  onPressed: () async {
+                    String dataFormatada = tarefa['prazo'] as String;
+                    if (prazoCtrl.text.length == 10) {
+                      final p = prazoCtrl.text.split('/');
+                      dataFormatada = '${p[2]}-${p[1]}-${p[0]}T00:00:00';
+                    }
+                    final sucesso = await _apiService
+                        .atualizarTarefa(tarefa['id'] as int, {
+                          'status': statusAtual,
+                          'observacao': obsCtrl.text,
+                          'prazo': dataFormatada,
+                        });
+                    if (sucesso && ctx.mounted) {
+                      Navigator.pop(ctx);
+                      setState(() => _future = _apiService.getTarefas());
+                    }
+                  },
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  void _abrirModalDetalhes(Map<String, dynamic> tarefa) {
-    final _obsController = TextEditingController(
-      text: tarefa['observacao'] ?? '',
-    );
-
-    // Controller para o prazo (pegando o valor que já vem do banco)
-    // Formatamos de AAAA-MM-DD para DD/MM/AAAA para o usuário editar
-    String dataInicial = tarefa['prazo'].split('T')[0];
-    List<String> partesData = dataInicial.split('-');
-    final _prazoController = TextEditingController(
-      text: "${partesData[2]}/${partesData[1]}/${partesData[0]}",
-    );
-
-    final prazoMask = MaskTextInputFormatter(
-      mask: '##/##/####',
-      filter: {"#": RegExp(r'[0-9]')},
-    );
-
-    String statusAtual = tarefa['status'];
-
-    showModalBottomSheet(
+  void _confirmarExclusao(int id) {
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-      ),
-      builder: (context) => StatefulBuilder(
-        builder: (BuildContext context, StateSetter setModalState) {
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-              left: 20,
-              right: 20,
-              top: 20,
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    tarefa['cliente'],
-                    style: GoogleFonts.poppins(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Excluir Tarefa?'),
+        content: const Text('Essa ação não pode ser desfeita.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('CANCELAR'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final ok = await _apiService.deletarTarefa(id);
+              if (ctx.mounted) Navigator.pop(ctx);
+              if (ok) {
+                setState(() => _future = _apiService.getTarefas());
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Erro ao excluir tarefa no servidor'),
                   ),
-                  Text(
-                    "CNPJ: ${tarefa['cnpj']}",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  Divider(height: 30),
-
-                  // NOVO: Edição do Prazo
-                  TextField(
-                    controller: _prazoController,
-                    inputFormatters: [prazoMask],
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: "Editar Prazo",
-                      hintText: "DD/MM/AAAA",
-                      prefixIcon: Icon(Icons.calendar_month),
-                    ),
-                  ),
-                  SizedBox(height: 15),
-
-                  DropdownButtonFormField<String>(
-                    value: statusAtual,
-                    decoration: InputDecoration(labelText: "Status da Tarefa"),
-                    items: [
-                      DropdownMenuItem(
-                        value: "pendente",
-                        child: Text("Pendente"),
-                      ),
-                      DropdownMenuItem(
-                        value: "concluido",
-                        child: Text("Concluída"),
-                      ),
-                    ],
-                    onChanged: (novoStatus) {
-                      if (novoStatus != null) {
-                        setModalState(() => statusAtual = novoStatus);
-                      }
-                    },
-                  ),
-                  SizedBox(height: 15),
-
-                  TextField(
-                    controller: _obsController,
-                    maxLines: 3,
-                    decoration: InputDecoration(
-                      labelText: "Observações",
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 20),
-
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      minimumSize: Size(double.infinity, 50),
-                    ),
-                    onPressed: () async {
-                      // Formata a data de volta para o padrão do Banco (ISO 8601)
-                      String dataFormatada =
-                          tarefa['prazo']; // Valor antigo caso falte algo
-                      if (_prazoController.text.length == 10) {
-                        final partes = _prazoController.text.split('/');
-                        dataFormatada =
-                            '${partes[2]}-${partes[1]}-${partes[0]}T00:00:00';
-                      }
-
-                      final dadosAtualizados = {
-                        'status': statusAtual,
-                        'observacao': _obsController.text,
-                        'prazo': dataFormatada, // ENVIANDO A NOVA DATA
-                      };
-
-                      final sucesso = await _apiService.atualizarTarefa(
-                        tarefa['id'],
-                        dadosAtualizados,
-                      );
-
-                      if (sucesso) {
-                        Navigator.pop(context);
-                        setState(() {});
-                      }
-                    },
-                    child: Text(
-                      "SALVAR ALTERAÇÕES",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                  SizedBox(height: 20),
-                ],
-              ),
-            ),
-          );
-        },
+                );
+              }
+            },
+            child: const Text('EXCLUIR', style: TextStyle(color: Colors.red)),
+          ),
+        ],
       ),
     );
   }
