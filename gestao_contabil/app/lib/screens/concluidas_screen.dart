@@ -242,13 +242,36 @@ class _ConcluidasScreenState extends State<ConcluidasScreen> {
       ),
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-        leading: CircleAvatar(
-          backgroundColor: Colors.green.withOpacity(0.15),
-          child: const Icon(
-            Icons.check_circle_rounded,
-            color: Colors.green,
-            size: 22,
-          ),
+        leading: Stack(
+          alignment: Alignment.topRight,
+          children: [
+            CircleAvatar(
+              backgroundColor: Colors.green.withOpacity(0.15),
+              child: const Icon(
+                Icons.check_circle_rounded,
+                color: Colors.green,
+                size: 22,
+              ),
+            ),
+            if (tarefa['urgente'] == true)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: Container(
+                  width: 12,
+                  height: 12,
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.priority_high,
+                    size: 8,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+          ],
         ),
         title: _highlightText(clienteNome, _query),
         subtitle: Column(

@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   final String baseUrl =
-      "http://192.168.0.106:8080"; // usar no andorid simulator 10.0.2.2?
+      "http://192.168.0.107:8080"; // usar no andorid simulator 10.0.2.2?
 
   //salva token para não ter que logar toda hora
   Future<Map<String, dynamic>?> login(String username, String password) async {

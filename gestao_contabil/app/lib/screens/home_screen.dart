@@ -4,46 +4,77 @@ import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import '../services/api/api_service.dart';
 
 class HomeScreen extends StatefulWidget {
-  final int refreshKey;
-  final VoidCallback onNavigateToConcluidas;
-  final VoidCallback onRefresh;
-
-  const HomeScreen({
-    super.key,
-    required this.refreshKey,
-    required this.onNavigateToConcluidas,
-    required this.onRefresh,
-  });
+  const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  // Estado PÚBLICO para o GlobalKey do MainScreen chamar refreshData()
+  State<HomeScreen> createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class HomeScreenState extends State<HomeScreen> {
   final ApiService _apiService = ApiService();
-  // Nullable para evitar LateInitializationError no IndexedStack
+
   Future<dynamic>? _future;
 
+  // ── Cache do último dado carregado com sucesso ───────────────────────────
+  // Evita tela branca durante o reload: enquanto a nova request está em
+  // andamento, continuamos exibindo o dado anterior.
+  Map<String, dynamic>? _cachedData;
+
+  // Controla qual painel está visível: pendentes ou concluídas
+  bool _showingConcluidas = false;
+
+  // Busca na seção de concluídas
+  final _searchCtrl = TextEditingController();
+  String _searchQuery = '';
+
   @override
-  void didUpdateWidget(HomeScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.refreshKey != widget.refreshKey) {
-      setState(() => _future = _apiService.getTarefas());
+  void initState() {
+    super.initState();
+    _searchCtrl.addListener(
+      () =>
+          setState(() => _searchQuery = _searchCtrl.text.toLowerCase().trim()),
+    );
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  // Chamado pelo MainScreen via GlobalKey após criar tarefa,
+  // e internamente após editar/excluir.
+  void refreshData() {
+    if (!mounted) return;
+    setState(() => _future = _fetchAndCache());
+  }
+
+  Future<dynamic> _fetchAndCache() async {
+    final result = await _apiService.getTarefas();
+    if (result != null && mounted) {
+      // Atualiza o cache assim que os dados chegam, antes do build
+      setState(() => _cachedData = result as Map<String, dynamic>);
     }
+    return result;
   }
 
   @override
   Widget build(BuildContext context) {
-    // Inicialização lazy: só chama a API na primeira vez que o widget é renderizado
-    _future ??= _apiService.getTarefas();
+    // Lazy init na primeira renderização
+    _future ??= _fetchAndCache();
 
     return FutureBuilder<dynamic>(
       future: _future,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError || snapshot.data == null) {
+        // Usa dado em cache se ainda estiver carregando (evita tela branca)
+        final data = (snapshot.data as Map<String, dynamic>?) ?? _cachedData;
+
+        // Primeira carga: sem cache ainda
+        if (data == null) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -56,8 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 12),
                 ElevatedButton(
-                  onPressed: () =>
-                      setState(() => _future = _apiService.getTarefas()),
+                  onPressed: refreshData,
                   child: const Text('Tentar novamente'),
                 ),
               ],
@@ -65,84 +95,45 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
 
-        final data = snapshot.data as Map<String, dynamic>;
         final resumo = data['resumo'] as Map<String, dynamic>;
         final tarefas = data['tarefas'] as List<dynamic>;
-        final agora = DateTime.now();
 
-        // ── Painel de Urgências: atrasadas + vencendo em até 3 dias ──────────
-        final limite = agora.add(const Duration(days: 3));
-        final urgentes =
-            tarefas.where((t) {
-              if (t['status'] == 'concluido') return false;
-              final prazo = DateTime.parse(t['prazo'] as String);
-              // Inclui tarefas já atrasadas E as que vencem nos próximos 3 dias
-              return prazo.isBefore(limite);
-            }).toList()..sort(
-              (a, b) => DateTime.parse(
-                a['prazo'] as String,
-              ).compareTo(DateTime.parse(b['prazo'] as String)),
-            );
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        return Stack(
           children: [
-            _buildHeader(agora),
-            _buildSummaryCards(resumo),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
-              child: Row(
-                children: [
-                  Text(
-                    'ATENÇÃO NECESSÁRIA',
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                      fontSize: 13,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  if (urgentes.isNotEmpty)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.red[50],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '${urgentes.length}',
-                        style: const TextStyle(
-                          color: Colors.red,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                ],
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(),
+                _buildSummaryCards(resumo),
+                if (_showingConcluidas)
+                  _buildConcluidasSection(tarefas)
+                else
+                  _buildPendentesSection(tarefas),
+              ],
+            ),
+            // Indicador sutil de atualização em andamento (sem bloquear a tela)
+            if (snapshot.connectionState == ConnectionState.waiting &&
+                _cachedData != null)
+              const Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: LinearProgressIndicator(
+                  backgroundColor: Colors.transparent,
+                  color: Color(0xFF4A47F5),
+                  minHeight: 2,
+                ),
               ),
-            ),
-            Expanded(
-              child: urgentes.isEmpty
-                  ? _buildEmptyState()
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: urgentes.length,
-                      itemBuilder: (context, index) =>
-                          _buildTaskCard(urgentes[index]),
-                    ),
-            ),
           ],
         );
       },
     );
   }
 
-  // ───────────────────────────── Widgets de Apoio ──────────────────────────
+  // ─────────────────────────── Cabeçalho ───────────────────────────────────
 
-  Widget _buildHeader(DateTime agora) {
+  Widget _buildHeader() {
+    final agora = DateTime.now();
     final meses = [
       '',
       'Janeiro',
@@ -158,32 +149,50 @@ class _HomeScreenState extends State<HomeScreen> {
       'Novembro',
       'Dezembro',
     ];
-    final dataStr = '${agora.day} de ${meses[agora.month]}, ${agora.year}';
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            'Hoje,',
-            style: GoogleFonts.poppins(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Hoje,',
+                style: GoogleFonts.poppins(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                '${agora.day} de ${meses[agora.month]}, ${agora.year}',
+                style: GoogleFonts.poppins(color: Colors.grey, fontSize: 13),
+              ),
+            ],
+          ),
+          if (_showingConcluidas)
+            TextButton.icon(
+              onPressed: () {
+                _searchCtrl.clear();
+                setState(() => _showingConcluidas = false);
+              },
+              icon: const Icon(Icons.arrow_back_ios, size: 14),
+              label: const Text('Pendentes'),
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF4A47F5),
+              ),
             ),
-          ),
-          Text(
-            dataStr,
-            style: GoogleFonts.poppins(color: Colors.grey, fontSize: 14),
-          ),
         ],
       ),
     );
   }
 
+  // ─────────────────────────── Cards de Resumo ─────────────────────────────
+
   Widget _buildSummaryCards(Map<String, dynamic> resumo) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.fromLTRB(20, 16, 0, 16),
+      padding: const EdgeInsets.fromLTRB(20, 14, 0, 14),
       child: Row(
         children: [
           _statusCard(
@@ -198,23 +207,30 @@ class _HomeScreenState extends State<HomeScreen> {
             const Color(0xFFFFEBEE),
             Colors.red,
           ),
-          // Card de Concluídas é um botão que abre a aba de histórico
+          // Card de concluídas → abre o histórico inline
           GestureDetector(
-            onTap: widget.onNavigateToConcluidas,
+            onTap: () {
+              _searchCtrl.clear();
+              setState(() => _showingConcluidas = !_showingConcluidas);
+            },
             child: Stack(
               alignment: Alignment.topRight,
               children: [
                 _statusCard(
                   'Concluídas',
                   resumo['concluidas'].toString(),
-                  const Color(0xFFE8F5E9),
+                  _showingConcluidas
+                      ? Colors.green.withOpacity(0.25)
+                      : const Color(0xFFE8F5E9),
                   Colors.green,
                 ),
                 Padding(
                   padding: const EdgeInsets.all(6),
                   child: Icon(
-                    Icons.arrow_forward_ios,
-                    size: 12,
+                    _showingConcluidas
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    size: 14,
                     color: Colors.green[700],
                   ),
                 ),
@@ -229,7 +245,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _statusCard(String label, String value, Color bg, Color textCol) {
     return Container(
       margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(15),
@@ -248,7 +264,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(
             label,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 10,
               color: textCol,
               fontWeight: FontWeight.w600,
             ),
@@ -258,7 +274,77 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  // ─────────────────────────── Painel de Pendentes ─────────────────────────
+
+  Widget _buildPendentesSection(List<dynamic> tarefas) {
+    final pendentes =
+        tarefas
+            .where((t) {
+              final m = t as Map<String, dynamic>;
+              return m['status'] != 'concluido';
+            })
+            .cast<Map<String, dynamic>>()
+            .toList()
+          ..sort(
+            (a, b) => DateTime.parse(
+              a['prazo'] as String,
+            ).compareTo(DateTime.parse(b['prazo'] as String)),
+          );
+
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+            child: Row(
+              children: [
+                Text(
+                  'TAREFAS PENDENTES',
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                if (pendentes.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.red[50],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${pendentes.length}',
+                      style: const TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: pendentes.isEmpty
+                ? _buildEmptyPendentes()
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: pendentes.length,
+                    itemBuilder: (ctx, i) => _buildTaskCard(pendentes[i]),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyPendentes() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -278,7 +364,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Nenhuma tarefa urgente no momento.\nUse o Calendário para ver o planejamento.',
+            'Nenhuma tarefa pendente no momento.\nVeja o planejamento no Calendário.',
             textAlign: TextAlign.center,
             style: GoogleFonts.poppins(color: Colors.grey, fontSize: 13),
           ),
@@ -287,7 +373,222 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildTaskCard(dynamic tarefa) {
+  // ─────────────────────────── Seção de Concluídas ─────────────────────────
+
+  Widget _buildConcluidasSection(List<dynamic> tarefas) {
+    final concluidas =
+        tarefas
+            .where((t) => (t as Map<String, dynamic>)['status'] == 'concluido')
+            .cast<Map<String, dynamic>>()
+            .toList()
+          ..sort(
+            (a, b) => DateTime.parse(
+              b['prazo'] as String,
+            ).compareTo(DateTime.parse(a['prazo'] as String)),
+          );
+
+    final filtradas = _searchQuery.isEmpty
+        ? concluidas
+        : concluidas.where((t) {
+            final q = _searchQuery;
+            return (t['cliente'] as String).toLowerCase().contains(q) ||
+                (t['cnpj'] as String).toLowerCase().contains(q) ||
+                (t['tipo'] as String).toLowerCase().contains(q) ||
+                (t['observacao'] as String? ?? '').toLowerCase().contains(q);
+          }).toList();
+
+    return Expanded(
+      child: Column(
+        children: [
+          // Barra de busca
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: TextField(
+              controller: _searchCtrl,
+              decoration: InputDecoration(
+                hintText: 'Buscar concluídas...',
+                hintStyle: const TextStyle(fontSize: 13),
+                prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.close, size: 18),
+                        onPressed: _searchCtrl.clear,
+                      )
+                    : null,
+                filled: true,
+                fillColor: const Color(0xFFF0F0F0),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+          ),
+          // Contador
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+            child: Row(
+              children: [
+                Icon(Icons.history_rounded, size: 14, color: Colors.green[600]),
+                const SizedBox(width: 6),
+                Text(
+                  _searchQuery.isEmpty
+                      ? '${concluidas.length} tarefa(s) concluída(s)'
+                      : '${filtradas.length} resultado(s)',
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: filtradas.isEmpty
+                ? Center(
+                    child: Text(
+                      _searchQuery.isEmpty
+                          ? 'Nenhuma tarefa concluída ainda.'
+                          : 'Nada encontrado.',
+                      style: GoogleFonts.poppins(color: Colors.grey),
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: filtradas.length,
+                    itemBuilder: (ctx, i) => _buildConcluidaCard(filtradas[i]),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConcluidaCard(Map<String, dynamic> tarefa) {
+    final partes = (tarefa['prazo'] as String).split('T')[0].split('-');
+    final dataFormatada = '${partes[2]}/${partes[1]}/${partes[0]}';
+    final logs = tarefa['logs'] as List<dynamic>;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: const Border(left: BorderSide(color: Colors.green, width: 4)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8),
+        ],
+      ),
+      child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        leading: CircleAvatar(
+          backgroundColor: Colors.green.withOpacity(0.15),
+          child: const Icon(
+            Icons.check_circle_rounded,
+            color: Colors.green,
+            size: 22,
+          ),
+        ),
+        title: Text(
+          tarefa['cliente'] as String,
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              tarefa['tipo'] as String,
+              style: const TextStyle(
+                color: Color(0xFF4A47F5),
+                fontWeight: FontWeight.w500,
+                fontSize: 12,
+              ),
+            ),
+            Row(
+              children: [
+                const Icon(Icons.calendar_today, size: 11, color: Colors.grey),
+                const SizedBox(width: 4),
+                Text(
+                  'Prazo: $dataFormatada',
+                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                ),
+              ],
+            ),
+          ],
+        ),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Divider(),
+                Text(
+                  'CNPJ: ${tarefa['cnpj']}',
+                  style: const TextStyle(fontSize: 12, color: Colors.black54),
+                ),
+                if (tarefa['observacao'] != null &&
+                    (tarefa['observacao'] as String).isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      'Obs: ${tarefa['observacao']}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ),
+                if (logs.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'HISTÓRICO',
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  ...logs.map(
+                    (log) => Padding(
+                      padding: const EdgeInsets.only(bottom: 3),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.fiber_manual_record,
+                            size: 9,
+                            color: Colors.green,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              log as String,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─────────────────────────── Card de Tarefa Urgente ──────────────────────
+
+  Widget _buildTaskCard(Map<String, dynamic> tarefa) {
     final prazo = DateTime.parse(tarefa['prazo'] as String);
     final agora = DateTime.now();
     final isAtrasada = prazo.isBefore(agora) && tarefa['status'] != 'concluido';
@@ -295,33 +596,71 @@ class _HomeScreenState extends State<HomeScreen> {
         .difference(DateTime(agora.year, agora.month, agora.day))
         .inDays;
 
-    Color statusColor = Colors.orange;
-    String statusLabel = 'Pendente';
+    Color cor;
+    String etiqueta;
     if (isAtrasada) {
-      statusColor = Colors.red;
-      statusLabel = 'ATRASADA';
+      cor = Colors.red;
+      etiqueta = 'ATRASADA';
     } else if (diffDias == 0) {
-      statusColor = Colors.red;
-      statusLabel = 'Vence HOJE';
+      cor = Colors.red;
+      etiqueta = 'Vence HOJE';
     } else if (diffDias == 1) {
-      statusColor = Colors.deepOrange;
-      statusLabel = 'Vence amanhã';
+      cor = Colors.deepOrange;
+      etiqueta = 'Vence amanhã';
     } else {
-      statusLabel = 'Em $diffDias dias';
+      cor = Colors.orange;
+      etiqueta = 'Em $diffDias dias';
     }
+
+    final prazoStr = (tarefa['prazo'] as String)
+        .split('T')[0]
+        .split('-')
+        .reversed
+        .join('/');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
-        border: Border(left: BorderSide(color: statusColor, width: 4)),
+        border: Border(left: BorderSide(color: cor, width: 4)),
         boxShadow: [
           BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
         ],
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: Stack(
+          alignment: Alignment.topRight,
+          children: [
+            CircleAvatar(
+              backgroundColor: cor.withOpacity(0.15),
+              child: Icon(
+                isAtrasada ? Icons.warning : Icons.assignment_outlined,
+                color: cor,
+                size: 20,
+              ),
+            ),
+            if (tarefa['urgente'] == true)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: Container(
+                  width: 12,
+                  height: 12,
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.priority_high,
+                    size: 8,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+          ],
+        ),
         title: Text(
           tarefa['cliente'] as String,
           style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 15),
@@ -331,8 +670,8 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Text(
               tarefa['tipo'] as String,
-              style: TextStyle(
-                color: const Color(0xFF4A47F5),
+              style: const TextStyle(
+                color: Color(0xFF4A47F5),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -352,19 +691,19 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.1),
+                color: cor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.schedule, size: 12, color: statusColor),
+                  Icon(Icons.schedule, size: 12, color: cor),
                   const SizedBox(width: 4),
                   Text(
-                    '${tarefa['prazo'].toString().split('T')[0].split('-').reversed.join('/')}  •  $statusLabel',
+                    '$prazoStr  •  $etiqueta',
                     style: TextStyle(
                       fontSize: 11,
-                      color: statusColor,
+                      color: cor,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -375,13 +714,12 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         trailing: PopupMenuButton<String>(
           icon: const Icon(Icons.more_vert, color: Colors.grey),
-          onSelected: (value) {
-            if (value == 'edit')
-              _abrirModalDetalhes(tarefa as Map<String, dynamic>);
-            if (value == 'delete') _confirmarExclusao(tarefa['id'] as int);
+          onSelected: (v) {
+            if (v == 'edit') _abrirModalDetalhes(tarefa);
+            if (v == 'delete') _confirmarExclusao(tarefa['id'] as int);
           },
-          itemBuilder: (context) => [
-            const PopupMenuItem(
+          itemBuilder: (ctx) => const [
+            PopupMenuItem(
               value: 'edit',
               child: Row(
                 children: [
@@ -391,7 +729,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'delete',
               child: Row(
                 children: [
@@ -407,7 +745,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ───────────────────────── Modal de Edição ───────────────────────────────
+  // ─────────────────────────── Modal de Edição ─────────────────────────────
 
   void _abrirModalDetalhes(Map<String, dynamic> tarefa) {
     final obsCtrl = TextEditingController(
@@ -422,6 +760,7 @@ class _HomeScreenState extends State<HomeScreen> {
       filter: {'#': RegExp(r'[0-9]')},
     );
     String statusAtual = tarefa['status'] as String;
+    bool isSaving = false;
 
     showModalBottomSheet(
       context: context,
@@ -429,132 +768,185 @@ class _HomeScreenState extends State<HomeScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModal) => Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom,
-            left: 20,
-            right: 20,
-            top: 20,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                Text(
-                  tarefa['cliente'] as String,
-                  style: GoogleFonts.poppins(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  'CNPJ: ${tarefa['cnpj']}',
-                  style: const TextStyle(color: Colors.grey),
-                ),
-                const Divider(height: 28),
-                TextField(
-                  controller: prazoCtrl,
-                  inputFormatters: [prazoMask],
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'Editar Prazo',
-                    hintText: 'DD/MM/AAAA',
-                    prefixIcon: const Icon(Icons.calendar_month),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+      builder: (modalCtx) => StatefulBuilder(
+        builder: (modalCtx, setModal) {
+          bool isUrgente = tarefa['urgente'] == true;
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(modalCtx).viewInsets.bottom,
+              left: 20,
+              right: 20,
+              top: 20,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 14),
-                DropdownButtonFormField<String>(
-                  value: statusAtual,
-                  decoration: InputDecoration(
-                    labelText: 'Status da Tarefa',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'pendente',
-                      child: Text('Pendente'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'concluido',
-                      child: Text('Concluída ✓'),
-                    ),
-                  ],
-                  onChanged: (v) {
-                    if (v != null) setModal(() => statusAtual = v);
-                  },
-                ),
-                const SizedBox(height: 14),
-                TextField(
-                  controller: obsCtrl,
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    labelText: 'Observações',
-                    prefixIcon: const Icon(Icons.notes),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black87,
-                    minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  icon: const Icon(Icons.save, color: Colors.white),
-                  label: Text(
-                    'SALVAR ALTERAÇÕES',
+                  Text(
+                    tarefa['cliente'] as String,
                     style: GoogleFonts.poppins(
-                      color: Colors.white,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  onPressed: () async {
-                    String dataFormatada = tarefa['prazo'] as String;
-                    if (prazoCtrl.text.length == 10) {
-                      final p = prazoCtrl.text.split('/');
-                      dataFormatada = '${p[2]}-${p[1]}-${p[0]}T00:00:00';
-                    }
-                    final sucesso = await _apiService
-                        .atualizarTarefa(tarefa['id'] as int, {
-                          'status': statusAtual,
-                          'observacao': obsCtrl.text,
-                          'prazo': dataFormatada,
-                        });
-                    if (sucesso && ctx.mounted) {
-                      Navigator.pop(ctx);
-                      setState(() => _future = _apiService.getTarefas());
-                    }
-                  },
-                ),
-                const SizedBox(height: 20),
-              ],
+                  Text(
+                    'CNPJ: ${tarefa['cnpj']}',
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                  const Divider(height: 28),
+                  TextField(
+                    controller: prazoCtrl,
+                    inputFormatters: [prazoMask],
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Editar Prazo',
+                      hintText: 'DD/MM/AAAA',
+                      prefixIcon: const Icon(Icons.calendar_month),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  DropdownButtonFormField<String>(
+                    value: statusAtual,
+                    decoration: InputDecoration(
+                      labelText: 'Status',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'pendente',
+                        child: Text('Pendente'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'concluido',
+                        child: Text('Concluída ✓'),
+                      ),
+                    ],
+                    onChanged: (v) {
+                      if (v != null) setModal(() => statusAtual = v);
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: obsCtrl,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      labelText: 'Observações',
+                      prefixIcon: const Icon(Icons.notes),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  CheckboxListTile(
+                    title: Text(
+                      'Marcar como Urgente',
+                      style: GoogleFonts.poppins(),
+                    ),
+                    value: isUrgente,
+                    onChanged: (value) =>
+                        setModal(() => isUrgente = value ?? false),
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black87,
+                      disabledBackgroundColor: Colors.black38,
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: isSaving
+                        ? null
+                        : () async {
+                            String dataFormatada = tarefa['prazo'] as String;
+                            if (prazoCtrl.text.length == 10) {
+                              final p = prazoCtrl.text.split('/');
+                              dataFormatada =
+                                  '${p[2]}-${p[1]}-${p[0]}T00:00:00';
+                            }
+
+                            setModal(() => isSaving = true);
+
+                            final ok = await _apiService
+                                .atualizarTarefa(tarefa['id'] as int, {
+                                  'status': statusAtual,
+                                  'observacao': obsCtrl.text,
+                                  'prazo': dataFormatada,
+                                  'urgente': isUrgente,
+                                });
+
+                            if (ok) {
+                              // ── CORREÇÃO DO REFRESH ───────────────────────
+                              // Fecha o modal usando o Navigator do contexto
+                              // principal (sempre montado). O context aqui se
+                              // refere ao _HomeScreenState — não ao modalCtx.
+                              Navigator.of(context).pop();
+
+                              // refreshData() verifica mounted internamente
+                              // e agenda o rebuild sem depender do modalCtx
+                              refreshData();
+                            } else {
+                              setModal(() => isSaving = false);
+                              if (modalCtx.mounted) {
+                                ScaffoldMessenger.of(modalCtx).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Erro ao salvar. Tente novamente.',
+                                    ),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                    icon: isSaving
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Icon(Icons.save, color: Colors.white),
+                    label: Text(
+                      isSaving ? 'SALVANDO...' : 'SALVAR ALTERAÇÕES',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
+
+  // ─────────────────────────── Diálogo de Exclusão ─────────────────────────
 
   void _confirmarExclusao(int id) {
     showDialog(
@@ -570,17 +962,9 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           TextButton(
             onPressed: () async {
+              Navigator.pop(ctx);
               final ok = await _apiService.deletarTarefa(id);
-              if (ctx.mounted) Navigator.pop(ctx);
-              if (ok) {
-                setState(() => _future = _apiService.getTarefas());
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Erro ao excluir tarefa no servidor'),
-                  ),
-                );
-              }
+              if (ok) refreshData();
             },
             child: const Text('EXCLUIR', style: TextStyle(color: Colors.red)),
           ),

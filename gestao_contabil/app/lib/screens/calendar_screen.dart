@@ -383,13 +383,36 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        leading: CircleAvatar(
-          backgroundColor: borderColor.withOpacity(0.15),
-          child: Icon(
-            isConcluida ? Icons.check : Icons.assignment_outlined,
-            color: borderColor,
-            size: 20,
-          ),
+        leading: Stack(
+          alignment: Alignment.topRight,
+          children: [
+            CircleAvatar(
+              backgroundColor: borderColor.withOpacity(0.15),
+              child: Icon(
+                isConcluida ? Icons.check : Icons.assignment_outlined,
+                color: borderColor,
+                size: 20,
+              ),
+            ),
+            if (tarefa['urgente'] == true)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: Container(
+                  width: 12,
+                  height: 12,
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.priority_high,
+                    size: 8,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+          ],
         ),
         title: Text(
           tarefa['cliente'] as String,
@@ -476,129 +499,144 @@ class _CalendarScreenState extends State<CalendarScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModal) => Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom,
-            left: 20,
-            right: 20,
-            top: 20,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(2),
+        builder: (ctx, setModal) {
+          bool isUrgente = tarefa['urgente'] == true;
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
+              left: 20,
+              right: 20,
+              top: 20,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
-                ),
-                Text(
-                  tarefa['cliente'] as String,
-                  style: GoogleFonts.poppins(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  'CNPJ: ${tarefa['cnpj']}',
-                  style: const TextStyle(color: Colors.grey),
-                ),
-                const Divider(height: 28),
-                TextField(
-                  controller: prazoCtrl,
-                  inputFormatters: [prazoMask],
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'Editar Prazo',
-                    hintText: 'DD/MM/AAAA',
-                    prefixIcon: const Icon(Icons.calendar_month),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                DropdownButtonFormField<String>(
-                  value: statusAtual,
-                  decoration: InputDecoration(
-                    labelText: 'Status',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'pendente',
-                      child: Text('Pendente'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'concluido',
-                      child: Text('Concluída ✓'),
-                    ),
-                  ],
-                  onChanged: (v) {
-                    if (v != null) setModal(() => statusAtual = v);
-                  },
-                ),
-                const SizedBox(height: 14),
-                TextField(
-                  controller: obsCtrl,
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    labelText: 'Observações',
-                    prefixIcon: const Icon(Icons.notes),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black87,
-                    minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  icon: const Icon(Icons.save, color: Colors.white),
-                  label: Text(
-                    'SALVAR ALTERAÇÕES',
+                  Text(
+                    tarefa['cliente'] as String,
                     style: GoogleFonts.poppins(
-                      color: Colors.white,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  onPressed: () async {
-                    String dataFormatada = tarefa['prazo'] as String;
-                    if (prazoCtrl.text.length == 10) {
-                      final p = prazoCtrl.text.split('/');
-                      dataFormatada = '${p[2]}-${p[1]}-${p[0]}T00:00:00';
-                    }
-                    final ok = await _apiService
-                        .atualizarTarefa(tarefa['id'] as int, {
-                          'status': statusAtual,
-                          'observacao': obsCtrl.text,
-                          'prazo': dataFormatada,
-                        });
-                    if (ok && ctx.mounted) {
-                      Navigator.pop(ctx);
-                      setState(() => _future = _loadTasks());
-                    }
-                  },
-                ),
-                const SizedBox(height: 20),
-              ],
+                  Text(
+                    'CNPJ: ${tarefa['cnpj']}',
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                  const Divider(height: 28),
+                  TextField(
+                    controller: prazoCtrl,
+                    inputFormatters: [prazoMask],
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Editar Prazo',
+                      hintText: 'DD/MM/AAAA',
+                      prefixIcon: const Icon(Icons.calendar_month),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  DropdownButtonFormField<String>(
+                    value: statusAtual,
+                    decoration: InputDecoration(
+                      labelText: 'Status',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'pendente',
+                        child: Text('Pendente'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'concluido',
+                        child: Text('Concluída ✓'),
+                      ),
+                    ],
+                    onChanged: (v) {
+                      if (v != null) setModal(() => statusAtual = v);
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: obsCtrl,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      labelText: 'Observações',
+                      prefixIcon: const Icon(Icons.notes),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  CheckboxListTile(
+                    title: Text(
+                      'Marcar como Urgente',
+                      style: GoogleFonts.poppins(),
+                    ),
+                    value: isUrgente,
+                    onChanged: (value) =>
+                        setModal(() => isUrgente = value ?? false),
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black87,
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    icon: const Icon(Icons.save, color: Colors.white),
+                    label: Text(
+                      'SALVAR ALTERAÇÕES',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    onPressed: () async {
+                      String dataFormatada = tarefa['prazo'] as String;
+                      if (prazoCtrl.text.length == 10) {
+                        final p = prazoCtrl.text.split('/');
+                        dataFormatada = '${p[2]}-${p[1]}-${p[0]}T00:00:00';
+                      }
+                      final ok = await _apiService
+                          .atualizarTarefa(tarefa['id'] as int, {
+                            'status': statusAtual,
+                            'observacao': obsCtrl.text,
+                            'prazo': dataFormatada,
+                            'urgente': isUrgente,
+                          });
+                      if (ok && ctx.mounted) {
+                        Navigator.pop(ctx);
+                        setState(() => _future = _loadTasks());
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
