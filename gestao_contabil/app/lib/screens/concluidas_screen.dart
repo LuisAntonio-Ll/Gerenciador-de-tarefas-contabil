@@ -223,7 +223,6 @@ class _ConcluidasScreenState extends State<ConcluidasScreen> {
 
     // Pega o último log (histórico da ação)
     final logs = tarefa['logs'] as List<dynamic>;
-    final ultimoLog = logs.isNotEmpty ? logs.last as String : 'Sem registros';
 
     // Destaca o termo buscado no nome do cliente
     final clienteNome = tarefa['cliente'] as String;

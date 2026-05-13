@@ -482,14 +482,6 @@ class HomeScreenState extends State<HomeScreen> {
       ),
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-        leading: CircleAvatar(
-          backgroundColor: Colors.green.withOpacity(0.15),
-          child: const Icon(
-            Icons.check_circle_rounded,
-            color: Colors.green,
-            size: 22,
-          ),
-        ),
         title: Text(
           tarefa['cliente'] as String,
           style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14),
@@ -505,15 +497,9 @@ class HomeScreenState extends State<HomeScreen> {
                 fontSize: 12,
               ),
             ),
-            Row(
-              children: [
-                const Icon(Icons.calendar_today, size: 11, color: Colors.grey),
-                const SizedBox(width: 4),
-                Text(
-                  'Prazo: $dataFormatada',
-                  style: const TextStyle(fontSize: 11, color: Colors.grey),
-                ),
-              ],
+            Text(
+              'Prazo: $dataFormatada',
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
             ),
           ],
         ),
@@ -555,25 +541,12 @@ class HomeScreenState extends State<HomeScreen> {
                   ...logs.map(
                     (log) => Padding(
                       padding: const EdgeInsets.only(bottom: 3),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(
-                            Icons.fiber_manual_record,
-                            size: 9,
-                            color: Colors.green,
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              log as String,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Colors.black54,
-                              ),
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        log as String,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.black54,
+                        ),
                       ),
                     ),
                   ),
@@ -630,37 +603,6 @@ class HomeScreenState extends State<HomeScreen> {
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: Stack(
-          alignment: Alignment.topRight,
-          children: [
-            CircleAvatar(
-              backgroundColor: cor.withOpacity(0.15),
-              child: Icon(
-                isAtrasada ? Icons.warning : Icons.assignment_outlined,
-                color: cor,
-                size: 20,
-              ),
-            ),
-            if (tarefa['urgente'] == true)
-              Positioned(
-                top: 0,
-                right: 0,
-                child: Container(
-                  width: 12,
-                  height: 12,
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.priority_high,
-                    size: 8,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-          ],
-        ),
         title: Text(
           tarefa['cliente'] as String,
           style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 15),
@@ -689,25 +631,18 @@ class HomeScreenState extends State<HomeScreen> {
               ),
             const SizedBox(height: 6),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               decoration: BoxDecoration(
                 color: cor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.schedule, size: 12, color: cor),
-                  const SizedBox(width: 4),
-                  Text(
-                    '$prazoStr  •  $etiqueta',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: cor,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+              child: Text(
+                '$prazoStr  •  $etiqueta',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: cor,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],

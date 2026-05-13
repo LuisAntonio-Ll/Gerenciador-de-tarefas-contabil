@@ -66,9 +66,11 @@ Response _handleGet(String? id) {
       final resumo = {
         // PENDENTES: Somente aquelas que não venceram ainda
         'pendentes': lista
-            .where((t) =>
-                t['status'] != 'concluido' &&
-                !DateTime.parse(t['prazo'] as String).isBefore(agora))
+            .where(
+              (t) =>
+                  t['status'] != 'concluido' &&
+                  !DateTime.parse(t['prazo'] as String).isBefore(agora),
+            )
             .length,
 
         // CONCLUÍDAS: Independente da data
@@ -81,10 +83,12 @@ Response _handleGet(String? id) {
         }).length,
       };
 
-      return Response.json(body: {
-        'resumo': resumo,
-        'tarefas': lista,
-      });
+      return Response.json(
+        body: {
+          'resumo': resumo,
+          'tarefas': lista,
+        },
+      );
     }
 
     return Response.json(body: lista.first);

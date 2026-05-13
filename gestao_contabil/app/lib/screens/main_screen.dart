@@ -4,6 +4,7 @@ import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import '../services/api/api_service.dart';
 import 'home_screen.dart';
 import 'calendar_screen.dart';
+import 'clientes_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Altere a rota '/home' no main.dart:
@@ -25,11 +26,17 @@ class _MainScreenState extends State<MainScreen> {
   // sem precisar fazer setState no MainScreen inteiro
   final _homeKey = GlobalKey<HomeScreenState>();
 
-  static const _titles = ['Gestão - NR', 'Calendário'];
+  static const _titles = [
+    'Gestão - NR',
+    'Gestão - NR',
+    'Gestão - NR',
+    'Configurações',
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: const Color(0xFFF8F9FB),
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -62,6 +69,13 @@ class _MainScreenState extends State<MainScreen> {
         children: [
           HomeScreen(key: _homeKey),
           CalendarScreen(refreshKey: 0, onRefresh: () {}),
+          const ClientesScreen(),
+          const Center(
+            child: Text(
+              'Configurações em breve',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+          ),
         ],
       ),
       bottomNavigationBar: _buildBottomNav(),
@@ -88,9 +102,8 @@ class _MainScreenState extends State<MainScreen> {
             _navItem(Icons.dashboard_rounded, 0),
             _navItem(Icons.calendar_month_rounded, 1),
             const SizedBox(width: 40), // espaço do FAB
-            // 3° e 4° ícones livres para futuras funcionalidades
-            _navItem(Icons.people_rounded, -1),
-            _navItem(Icons.settings_rounded, -1),
+            _navItem(Icons.people_rounded, 2),
+            _navItem(Icons.settings_rounded, 3),
           ],
         ),
       ),
@@ -125,6 +138,8 @@ class _MainScreenState extends State<MainScreen> {
       filter: {'#': RegExp(r'[0-9]')},
     );
 
+    final clientesFuture = _apiService.getClientes();
+    Map<String, dynamic>? selectedCliente;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -156,6 +171,73 @@ class _MainScreenState extends State<MainScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
+                  FutureBuilder<List<dynamic>?>(
+                    future: clientesFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Padding(
+                          padding: EdgeInsets.only(bottom: 12),
+                          child: LinearProgressIndicator(),
+                        );
+                      }
+
+                      if (snapshot.hasError || snapshot.data == null) {
+                        return const SizedBox.shrink();
+                      }
+
+                      final clientes = snapshot.data!
+                          .cast<Map<String, dynamic>>()
+                          .toList();
+
+                      return Column(
+                        children: [
+                          DropdownButtonFormField<Map<String, dynamic>>(
+                            decoration: InputDecoration(
+                              labelText: 'Selecionar cliente existente',
+                              prefixIcon: const Icon(Icons.person_search),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            value: selectedCliente,
+                            items: clientes.map((cliente) {
+                              return DropdownMenuItem(
+                                value: cliente,
+                                child: Text(cliente['nome'] as String),
+                              );
+                            }).toList(),
+                            onChanged: (cliente) {
+                              setModal(() {
+                                selectedCliente = cliente;
+                                if (cliente != null) {
+                                  clienteCtrl.text = cliente['nome'] as String;
+                                  cnpjCtrl.text = cliente['cnpj'] as String;
+                                }
+                              });
+                            },
+                          ),
+                          if (selectedCliente != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton(
+                                  onPressed: () {
+                                    setModal(() {
+                                      selectedCliente = null;
+                                      clienteCtrl.clear();
+                                      cnpjCtrl.clear();
+                                    });
+                                  },
+                                  child: const Text('Limpar seleção'),
+                                ),
+                              ),
+                            ),
+                          const SizedBox(height: 12),
+                        ],
+                      );
+                    },
+                  ),
                   _field(clienteCtrl, 'Cliente', Icons.business),
                   _field(
                     cnpjCtrl,
@@ -243,16 +325,7 @@ class _MainScreenState extends State<MainScreen> {
                             });
 
                             if (sucesso) {
-                              // ── CORREÇÃO DA TELA BRANCA ─────────────────
-                              // 1. Fecha o modal pelo Navigator raiz do app,
-                              //    não pelo contexto do builder (que pode já
-                              //    estar desmontado após o await)
                               Navigator.of(context).pop();
-
-                              // 2. Chama refresh diretamente no estado do
-                              //    HomeScreen via GlobalKey — sem setState
-                              //    no MainScreen (que causaria rebuild + tela
-                              //    branca durante o carregamento)
                               _homeKey.currentState?.refreshData();
                             } else {
                               setModal(() => isSaving = false);

@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   final String baseUrl =
-      "http://192.168.0.107:8080"; // usar no andorid simulator 10.0.2.2?
+      "http://192.168.0.103:8080"; // usar no andorid simulator 10.0.2.2?
 
   //salva token para não ter que logar toda hora
   Future<Map<String, dynamic>?> login(String username, String password) async {
@@ -79,6 +79,92 @@ class ApiService {
       return response.statusCode == 201;
     } catch (e) {
       print("Erro ao criar tarefa: $e");
+      return false;
+    }
+  }
+
+  Future<List<dynamic>?> getClientes() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('jwt_token');
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/clientes'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data as List<dynamic>;
+      }
+      throw Exception('Falha ao carregar clientes: ${response.statusCode}');
+    } catch (e) {
+      print("Erro no getClientes: $e");
+      return null;
+    }
+  }
+
+  Future<bool> criarCliente(Map<String, dynamic> novoCliente) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('jwt_token');
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/clientes'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(novoCliente),
+      );
+
+      return response.statusCode == 201;
+    } catch (e) {
+      print("Erro ao criar cliente: $e");
+      return false;
+    }
+  }
+
+  Future<bool> atualizarCliente(int id, Map<String, dynamic> dados) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('jwt_token');
+
+      final response = await http.put(
+        Uri.parse('$baseUrl/clientes?id=$id'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(dados),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print("Erro ao atualizar cliente: $e");
+      return false;
+    }
+  }
+
+  Future<bool> deletarCliente(int id) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('jwt_token');
+
+      final response = await http.delete(
+        Uri.parse('$baseUrl/clientes?id=$id'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      return response.statusCode == 200 || response.statusCode == 204;
+    } catch (e) {
+      print("Erro ao deletar cliente: $e");
       return false;
     }
   }

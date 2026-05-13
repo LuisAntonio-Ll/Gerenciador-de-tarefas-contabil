@@ -382,37 +382,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
         ],
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        leading: Stack(
-          alignment: Alignment.topRight,
-          children: [
-            CircleAvatar(
-              backgroundColor: borderColor.withOpacity(0.15),
-              child: Icon(
-                isConcluida ? Icons.check : Icons.assignment_outlined,
-                color: borderColor,
-                size: 20,
-              ),
-            ),
-            if (tarefa['urgente'] == true)
-              Positioned(
-                top: 0,
-                right: 0,
-                child: Container(
-                  width: 12,
-                  height: 12,
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.priority_high,
-                    size: 8,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-          ],
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 12,
         ),
         title: Text(
           tarefa['cliente'] as String,
