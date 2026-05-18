@@ -125,7 +125,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           children: [
             // ── Calendário ────────────────────────────────────────────────
             Container(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               child: TableCalendar<Map<String, dynamic>>(
                 locale: 'pt_BR',
                 firstDay: DateTime.utc(2025, 1, 1),
@@ -223,7 +223,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
             // ── Divider com legenda dos pontos ────────────────────────────
             Container(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
               child: Row(
                 children: [
@@ -247,7 +247,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     style: GoogleFonts.poppins(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
-                      color: Colors.black87,
+                      color:
+                          Theme.of(context).textTheme.bodyLarge?.color ??
+                          Colors.black87,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -305,7 +307,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
         const SizedBox(width: 4),
         Text(
           label,
-          style: const TextStyle(fontSize: 11, color: Colors.black54),
+          style: TextStyle(
+            fontSize: 11,
+            color:
+                Theme.of(context).textTheme.bodySmall?.color ?? Colors.black54,
+          ),
         ),
       ],
     );
@@ -366,6 +372,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final agora = DateTime.now();
     final isAtrasada = prazo.isBefore(agora) && tarefa['status'] != 'concluido';
     final isConcluida = tarefa['status'] == 'concluido';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     Color borderColor = Colors.orange;
     if (isConcluida) borderColor = Colors.green;
@@ -374,11 +381,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(14),
         border: Border(left: BorderSide(color: borderColor, width: 4)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8),
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+            blurRadius: 8,
+          ),
         ],
       ),
       child: ListTile(
@@ -388,27 +398,34 @@ class _CalendarScreenState extends State<CalendarScreen> {
         ),
         title: Text(
           tarefa['cliente'] as String,
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14),
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               tarefa['tipo'] as String,
-              style: const TextStyle(
-                color: Color(0xFF4A47F5),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.w500,
               ),
             ),
             Text(
               'CNPJ: ${tarefa['cnpj']}',
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
+              style: TextStyle(
+                fontSize: 11,
+                color: Theme.of(context).textTheme.bodySmall?.color,
+              ),
             ),
             if (isAtrasada)
-              const Text(
+              Text(
                 'ATRASADA',
                 style: TextStyle(
-                  color: Colors.red,
+                  color: Colors.red.shade400,
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
                 ),
@@ -416,7 +433,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           ],
         ),
         trailing: PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert, color: Colors.grey),
+          icon: Icon(Icons.more_vert, color: Theme.of(context).iconTheme.color),
           onSelected: (v) {
             if (v == 'edit') _abrirModalDetalhes(tarefa);
             if (v == 'delete') _confirmarExclusao(tarefa['id'] as int);

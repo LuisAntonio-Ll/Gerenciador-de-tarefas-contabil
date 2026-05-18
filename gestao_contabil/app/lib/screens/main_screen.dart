@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api/api_service.dart';
 import 'home_screen.dart';
 import 'calendar_screen.dart';
 import 'clientes_screen.dart';
+import 'settings_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Altere a rota '/home' no main.dart:
@@ -21,10 +23,56 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   final ApiService _apiService = ApiService();
+  String _usuario = '';
 
   // GlobalKey para chamar refreshData() diretamente no HomeScreen
   // sem precisar fazer setState no MainScreen inteiro
   final _homeKey = GlobalKey<HomeScreenState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    final usuario = prefs.getString('usuario') ?? '';
+    if (mounted) {
+      setState(() => _usuario = usuario);
+    }
+  }
+
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('jwt_token');
+    await prefs.remove('usuario');
+    if (!mounted) return;
+    Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+  }
+
+  void _confirmLogout() {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sair'),
+        content: const Text('Deseja realmente encerrar a sessão?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _logout();
+            },
+            child: const Text('Sair', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
 
   static const _titles = [
     'Gestão - NR',
@@ -35,11 +83,12 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      backgroundColor: const Color(0xFFF8F9FB),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
         elevation: 0,
         title: Text(
           _titles[_currentIndex],
@@ -51,16 +100,50 @@ class _MainScreenState extends State<MainScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_none, color: Colors.black54),
+            icon: Icon(
+              Icons.notifications_none,
+              color: isDarkMode ? Colors.white70 : Colors.black54,
+            ),
             onPressed: () {},
           ),
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: Colors.blue[100],
-              child: Icon(Icons.person, color: Colors.blue[900], size: 20),
+          PopupMenuButton<String>(
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: CircleAvatar(
+                radius: 18,
+                backgroundColor: Colors.blue[100],
+                child: Icon(Icons.person, color: Colors.blue[900], size: 20),
+              ),
             ),
+            onSelected: (value) {
+              if (value == 'logout') {
+                _confirmLogout();
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              PopupMenuItem<String>(
+                value: 'user',
+                child: Row(
+                  children: [
+                    const Icon(Icons.person, size: 18),
+                    const SizedBox(width: 8),
+                    Text(_usuario.isNotEmpty ? _usuario : 'Usuário'),
+                  ],
+                ),
+                enabled: false,
+              ),
+              const PopupMenuDivider(),
+              PopupMenuItem<String>(
+                value: 'logout',
+                child: Row(
+                  children: const [
+                    Icon(Icons.logout, size: 18, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Sair', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -70,20 +153,17 @@ class _MainScreenState extends State<MainScreen> {
           HomeScreen(key: _homeKey),
           CalendarScreen(refreshKey: 0, onRefresh: () {}),
           const ClientesScreen(),
-          const Center(
-            child: Text(
-              'Configurações em breve',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-          ),
+          const SettingsScreen(),
         ],
       ),
       bottomNavigationBar: _buildBottomNav(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _abrirModalCadastro,
-        backgroundColor: const Color(0xFF4A47F5),
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+      floatingActionButton: _currentIndex == 3
+          ? null
+          : FloatingActionButton(
+              onPressed: _abrirModalCadastro,
+              backgroundColor: const Color(0xFF4A47F5),
+              child: const Icon(Icons.add, color: Colors.white),
+            ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }

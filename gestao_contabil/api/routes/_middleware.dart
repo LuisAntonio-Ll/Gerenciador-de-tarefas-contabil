@@ -3,9 +3,23 @@ import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 
 Handler middleware(Handler handler) {
   return (context) async {
-    // Permite acesso à rota de login sem autenticação
+    // 1. MAPEAMENTO DE CORS (Obrigatório para o iPhone Web funcionar)
+    final originHeaders = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Origin, Content-Type, Authorization',
+    };
+
+    // Se o navegador enviar um pré-vôo (OPTIONS), responde imediatamente OK
+    if (context.request.method == HttpMethod.options) {
+      return Response(statusCode: 204, headers: originHeaders);
+    }
+
+    // 2. ROTAS PÚBLICAS
     if (context.request.uri.path == '/login') {
-      return handler(context);
+      final response = await handler(context);
+      return response
+          .copyWith(headers: {...response.headers, ...originHeaders});
     }
 
     // Verifica o token JWT no header Authorization
@@ -26,7 +40,9 @@ Handler middleware(Handler handler) {
       final userContext = context.provide<Map<String, dynamic>>(
           () => jwt.payload as Map<String, dynamic>);
 
-      return handler(userContext);
+      final response = await handler(userContext);
+      return response
+          .copyWith(headers: {...response.headers, ...originHeaders});
     } catch (e) {
       return Response.json(
           body: {'erro': 'Token inválido ou expirado'}, statusCode: 401);

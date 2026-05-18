@@ -190,6 +190,7 @@ class HomeScreenState extends State<HomeScreen> {
   // ─────────────────────────── Cards de Resumo ─────────────────────────────
 
   Widget _buildSummaryCards(Map<String, dynamic> resumo) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.fromLTRB(20, 14, 0, 14),
@@ -198,13 +199,13 @@ class HomeScreenState extends State<HomeScreen> {
           _statusCard(
             'Pendentes',
             resumo['pendentes'].toString(),
-            const Color(0xFFFFF3E0),
+            isDark ? Colors.orange.withOpacity(0.2) : const Color(0xFFFFF3E0),
             Colors.orange,
           ),
           _statusCard(
             'Atrasadas',
             resumo['atrasadas'].toString(),
-            const Color(0xFFFFEBEE),
+            isDark ? Colors.red.withOpacity(0.2) : const Color(0xFFFFEBEE),
             Colors.red,
           ),
           // Card de concluídas → abre o histórico inline
@@ -220,8 +221,12 @@ class HomeScreenState extends State<HomeScreen> {
                   'Concluídas',
                   resumo['concluidas'].toString(),
                   _showingConcluidas
-                      ? Colors.green.withOpacity(0.25)
-                      : const Color(0xFFE8F5E9),
+                      ? (isDark
+                            ? Colors.green.withOpacity(0.3)
+                            : Colors.green.withOpacity(0.25))
+                      : (isDark
+                            ? Colors.green.withOpacity(0.2)
+                            : const Color(0xFFE8F5E9)),
                   Colors.green,
                 ),
                 Padding(
@@ -303,7 +308,9 @@ class HomeScreenState extends State<HomeScreen> {
                   'TAREFAS PENDENTES',
                   style: GoogleFonts.poppins(
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color:
+                        Theme.of(context).textTheme.bodyLarge?.color ??
+                        Colors.black87,
                     fontSize: 12,
                   ),
                 ),
@@ -473,7 +480,7 @@ class HomeScreenState extends State<HomeScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(14),
         border: const Border(left: BorderSide(color: Colors.green, width: 4)),
         boxShadow: [
@@ -512,7 +519,12 @@ class HomeScreenState extends State<HomeScreen> {
                 const Divider(),
                 Text(
                   'CNPJ: ${tarefa['cnpj']}',
-                  style: const TextStyle(fontSize: 12, color: Colors.black54),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color:
+                        Theme.of(context).textTheme.bodySmall?.color ??
+                        Colors.black54,
+                  ),
                 ),
                 if (tarefa['observacao'] != null &&
                     (tarefa['observacao'] as String).isNotEmpty)
@@ -520,9 +532,11 @@ class HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
                       'Obs: ${tarefa['observacao']}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: Colors.black54,
+                        color:
+                            Theme.of(context).textTheme.bodySmall?.color ??
+                            Colors.black54,
                       ),
                     ),
                   ),
@@ -543,9 +557,11 @@ class HomeScreenState extends State<HomeScreen> {
                       padding: const EdgeInsets.only(bottom: 3),
                       child: Text(
                         log as String,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
-                          color: Colors.black54,
+                          color:
+                              Theme.of(context).textTheme.bodySmall?.color ??
+                              Colors.black54,
                         ),
                       ),
                     ),
@@ -594,7 +610,7 @@ class HomeScreenState extends State<HomeScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(15),
         border: Border(left: BorderSide(color: cor, width: 4)),
         boxShadow: [
@@ -627,7 +643,12 @@ class HomeScreenState extends State<HomeScreen> {
                 'Obs: ${tarefa['observacao']}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12, color: Colors.black54),
+                style: TextStyle(
+                  fontSize: 12,
+                  color:
+                      Theme.of(context).textTheme.bodySmall?.color ??
+                      Colors.black54,
+                ),
               ),
             const SizedBox(height: 6),
             Container(

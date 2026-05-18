@@ -245,7 +245,7 @@ class _ClientesScreenState extends State<ClientesScreen> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFFF8F9FB),
+      color: Theme.of(context).scaffoldBackgroundColor,
       child: Column(
         children: [
           Padding(
@@ -339,14 +339,18 @@ class _ClientesScreenState extends State<ClientesScreen> {
                           itemCount: clientes.length,
                           itemBuilder: (context, index) {
                             final cliente = clientes[index];
+                            final isDark =
+                                Theme.of(context).brightness == Brightness.dark;
                             return Container(
                               margin: const EdgeInsets.only(bottom: 12),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: Theme.of(context).cardColor,
                                 borderRadius: BorderRadius.circular(16),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.04),
+                                    color: Colors.black.withOpacity(
+                                      isDark ? 0.3 : 0.04,
+                                    ),
                                     blurRadius: 8,
                                   ),
                                 ],
@@ -356,12 +360,17 @@ class _ClientesScreenState extends State<ClientesScreen> {
                                   cliente['nome'] as String,
                                   style: GoogleFonts.poppins(
                                     fontWeight: FontWeight.w600,
+                                    color: Theme.of(
+                                      context,
+                                    ).textTheme.bodyLarge?.color,
                                   ),
                                 ),
                                 subtitle: Text(
                                   cliente['cnpj'] as String,
                                   style: GoogleFonts.poppins(
-                                    color: Colors.grey[700],
+                                    color: isDark
+                                        ? Colors.grey[400]
+                                        : Colors.grey[700],
                                   ),
                                 ),
                                 trailing: PopupMenuButton<String>(

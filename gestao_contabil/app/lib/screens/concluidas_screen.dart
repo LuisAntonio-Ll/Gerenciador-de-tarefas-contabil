@@ -109,7 +109,7 @@ class _ConcluidasScreenState extends State<ConcluidasScreen> {
           children: [
             // ── Barra de Busca ────────────────────────────────────────────
             Container(
-              color: Colors.white,
+              color: Theme.of(context).scaffoldBackgroundColor,
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
               child: TextField(
                 controller: _searchCtrl,
@@ -124,7 +124,7 @@ class _ConcluidasScreenState extends State<ConcluidasScreen> {
                         )
                       : null,
                   filled: true,
-                  fillColor: const Color(0xFFF8F9FB),
+                  fillColor: Theme.of(context).cardColor,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide.none,
@@ -232,7 +232,7 @@ class _ConcluidasScreenState extends State<ConcluidasScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(14),
         border: const Border(left: BorderSide(color: Colors.green, width: 4)),
         boxShadow: [
@@ -339,9 +339,13 @@ class _ConcluidasScreenState extends State<ConcluidasScreen> {
                         Expanded(
                           child: Text(
                             log as String,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
-                              color: Colors.black54,
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).textTheme.bodySmall?.color ??
+                                  Colors.black54,
                             ),
                           ),
                         ),
@@ -367,16 +371,23 @@ class _ConcluidasScreenState extends State<ConcluidasScreen> {
           const SizedBox(width: 6),
           Text(
             '$label: ',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: Colors.black54,
+              color:
+                  Theme.of(context).textTheme.bodySmall?.color ??
+                  Colors.black54,
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(fontSize: 12, color: Colors.black87),
+              style: TextStyle(
+                fontSize: 12,
+                color:
+                    Theme.of(context).textTheme.bodyLarge?.color ??
+                    Colors.black87,
+              ),
             ),
           ),
         ],
@@ -405,15 +416,17 @@ class _ConcluidasScreenState extends State<ConcluidasScreen> {
         style: GoogleFonts.poppins(
           fontWeight: FontWeight.bold,
           fontSize: 14,
-          color: Colors.black87,
+          color: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black87,
         ),
         children: [
           TextSpan(text: text.substring(0, idx)),
           TextSpan(
             text: text.substring(idx, idx + query.length),
-            style: const TextStyle(
-              backgroundColor: Color(0xFFFFEB3B),
-              color: Colors.black,
+            style: TextStyle(
+              backgroundColor: const Color(0xFFFFEB3B),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.black87
+                  : Colors.black,
             ),
           ),
           TextSpan(text: text.substring(idx + query.length)),

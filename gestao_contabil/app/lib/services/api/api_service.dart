@@ -1,10 +1,17 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  final String baseUrl =
-      "http://192.168.0.103:8080"; // usar no andorid simulator 10.0.2.2?
+  static const String ngrokUrl =
+      "https://removable-dorian-frostier.ngrok-free.dev";
+
+  final String baseUrl = kIsWeb
+      ? ngrokUrl // iPhone Web
+      : (defaultTargetPlatform == TargetPlatform.android && !kReleaseMode
+            ? "http://10.0.2.2:8080" // Emulador Android do PC (Modo Debug)
+            : ngrokUrl);
 
   //salva token para não ter que logar toda hora
   Future<Map<String, dynamic>?> login(String username, String password) async {
