@@ -21,11 +21,6 @@ class TarefaContabil {
     this.logs = const [],
   });
 
-  bool get isUrgente {
-    final dia = prazo.day;
-    return (dia == 15 || dia == 20) && status != StatusDocumento.concluido;
-  }
-
   Map<String, dynamic> toJson() => {
         'id': id,
         'cliente': clienteNome,
@@ -35,6 +30,5 @@ class TarefaContabil {
         'status': status.name,
         'observacao': observacao,
         'logs': logs,
-        'urgente': isUrgente,
       };
 }

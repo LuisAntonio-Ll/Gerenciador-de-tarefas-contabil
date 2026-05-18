@@ -619,9 +619,23 @@ class HomeScreenState extends State<HomeScreen> {
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        title: Text(
-          tarefa['cliente'] as String,
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 15),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                tarefa['cliente'] as String,
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+              ),
+            ),
+            if (tarefa['urgente'] == true)
+              const Padding(
+                padding: EdgeInsets.only(left: 8),
+                child: Icon(Icons.warning_rounded, color: Colors.red, size: 20),
+              ),
+          ],
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

@@ -396,13 +396,24 @@ class _CalendarScreenState extends State<CalendarScreen> {
           horizontal: 14,
           vertical: 12,
         ),
-        title: Text(
-          tarefa['cliente'] as String,
-          style: GoogleFonts.poppins(
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-            color: Theme.of(context).textTheme.bodyLarge?.color,
-          ),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                tarefa['cliente'] as String,
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+              ),
+            ),
+            if (tarefa['urgente'] == true)
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Icon(Icons.warning_rounded, color: Colors.red, size: 18),
+              ),
+          ],
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
