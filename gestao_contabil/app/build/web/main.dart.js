@@ -43975,7 +43975,7 @@ case 7:n=b
 m=A.bU(n.a.h(0,"jwt_token"))
 i=t.N
 s=8
-return A.K(A.aNv(A.ed(u.X,0,null),A.al(["Authorization","Bearer "+A.j(m),"Content-Type","application/json"],i,i)),$async$q0)
+return A.K(A.aNv(A.ed(u.X,0,null),A.al(["Authorization","Bearer "+A.j(m),"Content-Type","application/json","ngrok-skip-browser-warning","true"],i,i)),$async$q0)
 case 8:l=b
 if(l.b===200){i=l
 k=B.bm.Aq(A.aFT(A.aFu(i.e)).fo(i.w),null)
@@ -44011,7 +44011,7 @@ case 7:n=c
 m=A.bU(n.a.h(0,"jwt_token"))
 j=A.ed(u.X,0,null)
 i=t.N
-i=A.al(["Authorization","Bearer "+A.j(m),"Content-Type","application/json"],i,i)
+i=A.al(["Authorization","Bearer "+A.j(m),"Content-Type","application/json","ngrok-skip-browser-warning","true"],i,i)
 s=8
 return A.K(A.aG8(j,B.bm.rs(a,null),i),$async$vt)
 case 8:l=c
@@ -44045,7 +44045,7 @@ case 7:n=b
 m=A.bU(n.a.h(0,"jwt_token"))
 i=t.N
 s=8
-return A.K(A.aNv(A.ed(u.g,0,null),A.al(["Authorization","Bearer "+A.j(m),"Content-Type","application/json"],i,i)),$async$pW)
+return A.K(A.aNv(A.ed(u.g,0,null),A.al(["Authorization","Bearer "+A.j(m),"Content-Type","application/json","ngrok-skip-browser-warning","true"],i,i)),$async$pW)
 case 8:l=b
 if(l.b===200){i=l
 k=B.bm.Aq(A.aFT(A.aFu(i.e)).fo(i.w),null)
@@ -44081,7 +44081,7 @@ case 7:n=c
 m=A.bU(n.a.h(0,"jwt_token"))
 j=A.ed(u.g,0,null)
 i=t.N
-i=A.al(["Authorization","Bearer "+A.j(m),"Content-Type","application/json"],i,i)
+i=A.al(["Authorization","Bearer "+A.j(m),"Content-Type","application/json","ngrok-skip-browser-warning","true"],i,i)
 s=8
 return A.K(A.aG8(j,B.bm.rs(a,null),i),$async$vs)
 case 8:l=c
@@ -44116,7 +44116,7 @@ case 7:n=d
 m=A.bU(n.a.h(0,"jwt_token"))
 j=A.ed(u.P+a,0,null)
 i=t.N
-i=A.al(["Authorization","Bearer "+A.j(m),"Content-Type","application/json"],i,i)
+i=A.al(["Authorization","Bearer "+A.j(m),"Content-Type","application/json","ngrok-skip-browser-warning","true"],i,i)
 s=8
 return A.K(A.aNM(j,B.bm.rs(b,null),i),$async$v2)
 case 8:l=d
@@ -44151,7 +44151,7 @@ case 7:n=c
 m=A.bU(n.a.h(0,"jwt_token"))
 j=t.N
 s=8
-return A.K(A.aGf(A.ed(u.P+a,0,null),A.al(["Authorization","Bearer "+A.j(m),"Content-Type","application/json"],j,j)),$async$vx)
+return A.K(A.aGf(A.ed(u.P+a,0,null),A.al(["Authorization","Bearer "+A.j(m),"Content-Type","application/json","ngrok-skip-browser-warning","true"],j,j)),$async$vx)
 case 8:l=c
 j=l.b===200||l.b===204
 q=j
@@ -44184,7 +44184,7 @@ case 7:n=d
 m=A.bU(n.a.h(0,"jwt_token"))
 j=A.ed(u.A+a,0,null)
 i=t.N
-i=A.al(["Authorization","Bearer "+A.j(m),"Content-Type","application/json"],i,i)
+i=A.al(["Authorization","Bearer "+A.j(m),"Content-Type","application/json","ngrok-skip-browser-warning","true"],i,i)
 s=8
 return A.K(A.aNM(j,B.bm.rs(b,null),i),$async$r1)
 case 8:l=d
@@ -44219,7 +44219,7 @@ case 7:n=c
 m=A.bU(n.a.h(0,"jwt_token"))
 j=t.N
 s=8
-return A.K(A.aGf(A.ed(u.A+a,0,null),A.al(["Authorization","Bearer "+A.j(m),"Content-Type","application/json"],j,j)),$async$rm)
+return A.K(A.aGf(A.ed(u.A+a,0,null),A.al(["Authorization","Bearer "+A.j(m),"Content-Type","application/json","ngrok-skip-browser-warning","true"],j,j)),$async$rm)
 case 8:l=c
 j=l.b===200||l.b===204
 q=j

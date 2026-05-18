@@ -54,6 +54,7 @@ class ApiService {
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
       );
 
@@ -79,6 +80,7 @@ class ApiService {
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
         body: jsonEncode(novaTarefa),
       );
@@ -100,6 +102,7 @@ class ApiService {
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
       );
 
@@ -124,6 +127,7 @@ class ApiService {
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
         body: jsonEncode(novoCliente),
       );
@@ -145,6 +149,7 @@ class ApiService {
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
         body: jsonEncode(dados),
       );
@@ -166,6 +171,7 @@ class ApiService {
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
       );
 
@@ -186,6 +192,7 @@ class ApiService {
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
         body: jsonEncode(dados),
       );
@@ -207,6 +214,7 @@ class ApiService {
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
       );
 
