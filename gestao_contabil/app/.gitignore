@@ -18,13 +18,14 @@ migrate_working_dir/
 *.iws
 .idea/
 
-# --- Ignorar pastas de build, EXCETO a web ---
-app/build/
-!app/build/web/
+# NÃO ignore a pasta build (apenas o que está dentro dela)
+!app/build/
 
-# --- Ignorar arquivos específicos de build/web que não precisamos ---
-app/build/web/.last_build_id
-app/build/web/canvaskit/
+# Ignore TUDO dentro de build
+app/build/*
+
+# EXCETO a pasta web
+!app/build/web/
 
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
