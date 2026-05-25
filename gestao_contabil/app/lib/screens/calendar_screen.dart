@@ -41,6 +41,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   // Mapa de data normalizada (sem hora) → lista de tarefas
   Map<DateTime, List<Map<String, dynamic>>> _eventMap = {};
+  late VoidCallback _notifierListener;
 
   @override
   void didUpdateWidget(CalendarScreen oldWidget) {
@@ -48,6 +49,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
     if (oldWidget.refreshKey != widget.refreshKey) {
       setState(() => _future = _loadTasks());
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _notifierListener = () {
+      if (mounted) setState(() => _future = _loadTasks());
+    };
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   Future<dynamic> _loadTasks() async {
@@ -629,6 +643,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       if (ok && ctx.mounted) {
                         Navigator.pop(ctx);
                         setState(() => _future = _loadTasks());
+                        // Notifica HomeScreen para atualizar seu cache/tela
+                        widget.onRefresh();
                       }
                     },
                   ),
@@ -658,7 +674,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
             onPressed: () async {
               final ok = await _apiService.deletarTarefa(id);
               if (ctx.mounted) Navigator.pop(ctx);
-              if (ok) setState(() => _future = _loadTasks());
+              if (ok) {
+                setState(() => _future = _loadTasks());
+                widget.onRefresh();
+              }
             },
             child: const Text('EXCLUIR', style: TextStyle(color: Colors.red)),
           ),

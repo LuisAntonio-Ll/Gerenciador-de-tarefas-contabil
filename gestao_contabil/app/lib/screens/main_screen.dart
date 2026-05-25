@@ -25,6 +25,7 @@ class _MainScreenState extends State<MainScreen> {
   final ApiService _apiService = ApiService();
   String _usuario = '';
   int _calendarRefreshKey = 0;
+  final ValueNotifier<int> _calendarNotifier = ValueNotifier<int>(0);
 
   // GlobalKey para chamar refreshData() diretamente no HomeScreen
   // sem precisar fazer setState no MainScreen inteiro
@@ -155,7 +156,13 @@ class _MainScreenState extends State<MainScreen> {
             key: _homeKey,
             onTasksChanged: () => setState(() => _calendarRefreshKey++),
           ),
-          CalendarScreen(refreshKey: _calendarRefreshKey, onRefresh: () {}),
+          CalendarScreen(
+            refreshKey: _calendarRefreshKey,
+            onRefresh: () {
+              _homeKey.currentState?.refreshData();
+              setState(() => _calendarRefreshKey++);
+            },
+          ),
           const ClientesScreen(),
           const SettingsScreen(),
         ],
@@ -410,7 +417,10 @@ class _MainScreenState extends State<MainScreen> {
 
                             if (sucesso) {
                               Navigator.of(context).pop();
+                              // Atualiza Home (se estiver montado) e notifica o
+                              // Calendar incrementando a chave.
                               _homeKey.currentState?.refreshData();
+                              setState(() => _calendarRefreshKey++);
                             } else {
                               setModal(() => isSaving = false);
                               if (modalCtx.mounted) {

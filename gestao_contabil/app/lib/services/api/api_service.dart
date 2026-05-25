@@ -7,11 +7,9 @@ class ApiService {
   static const String ngrokUrl =
       "https://removable-dorian-frostier.ngrok-free.dev";
 
-  final String baseUrl = kIsWeb
-      ? ngrokUrl // iPhone Web
-      : (defaultTargetPlatform == TargetPlatform.android && !kReleaseMode
-            ? "http://10.0.2.2:8080" // Emulador Android do PC (Modo Debug)
-            : ngrokUrl);
+  final String baseUrl = ngrokUrl;
+  // Use ngrok para acessar a API de um dispositivo Android real em modo debug.
+  // O 10.0.2.2 só funciona em emuladores Android.
 
   //salva token para não ter que logar toda hora
   Future<Map<String, dynamic>?> login(String username, String password) async {
