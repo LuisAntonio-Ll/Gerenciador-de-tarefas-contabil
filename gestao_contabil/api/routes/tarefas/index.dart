@@ -57,7 +57,7 @@ Response _handleGet(String? id) {
         'status': status,
         'observacao': row['observacao'],
         'logs': logsLista,
-        'urgente': _verificarUrgencia(row['prazo'] as String, status),
+        'urgente': (row['urgente'] as int) == 1,
       };
     }).toList();
 
@@ -115,7 +115,7 @@ Future<Response> _handlePost(RequestContext context) async {
   final logsIniciais = jsonEncode(['Criado por $autor em ${DateTime.now()}']);
 
   dbHelper.db.execute(
-    'INSERT INTO tarefas (cliente, cnpj, tipo, prazo, status, observacao, logs) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO tarefas (cliente, cnpj, tipo, prazo, status, observacao, logs, urgente) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
     [
       body['cliente'],
       body['cnpj'],
@@ -123,7 +123,8 @@ Future<Response> _handlePost(RequestContext context) async {
       body['prazo'],
       'pendente',
       body['observacao'] ?? '',
-      logsIniciais
+      logsIniciais,
+      body['urgente'] == true ? 1 : 0
     ],
   );
 
@@ -155,7 +156,7 @@ Future<Response> _handlePut(RequestContext context, String? id) async {
   }
 
   dbHelper.db.execute(
-    'UPDATE tarefas SET cliente = ?, cnpj = ?, tipo = ?, prazo = ?, status = ?, observacao = ?, logs = ? WHERE id = ?',
+    'UPDATE tarefas SET cliente = ?, cnpj = ?, tipo = ?, prazo = ?, status = ?, observacao = ?, logs = ?, urgente = ? WHERE id = ?',
     [
       body['cliente'] ?? row['cliente'],
       body['cnpj'] ?? row['cnpj'],
@@ -164,6 +165,9 @@ Future<Response> _handlePut(RequestContext context, String? id) async {
       body['status'] ?? row['status'],
       body['observacao'] ?? row['observacao'],
       jsonEncode(logsAtuais),
+      body['urgente'] == true
+          ? 1
+          : (body['urgente'] == false ? 0 : row['urgente']),
       idInt
     ],
   );

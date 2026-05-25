@@ -491,6 +491,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       filter: {'#': RegExp(r'[0-9]')},
     );
     String statusAtual = tarefa['status'] as String;
+    bool isUrgente = tarefa['urgente'] == true;
 
     showModalBottomSheet(
       context: context,
@@ -500,7 +501,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModal) {
-          bool isUrgente = tarefa['urgente'] == true;
           return Padding(
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(ctx).viewInsets.bottom,
@@ -591,8 +591,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       style: GoogleFonts.poppins(),
                     ),
                     value: isUrgente,
-                    onChanged: (value) =>
-                        setModal(() => isUrgente = value ?? false),
+                    onChanged: (value) {
+                      setModal(() => isUrgente = value ?? false);
+                    },
                     controlAffinity: ListTileControlAffinity.leading,
                   ),
                   const SizedBox(height: 20),

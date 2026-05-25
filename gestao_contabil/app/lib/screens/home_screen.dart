@@ -736,6 +736,7 @@ class HomeScreenState extends State<HomeScreen> {
     );
     String statusAtual = tarefa['status'] as String;
     bool isSaving = false;
+    bool isUrgente = tarefa['urgente'] == true;
 
     showModalBottomSheet(
       context: context,
@@ -745,7 +746,6 @@ class HomeScreenState extends State<HomeScreen> {
       ),
       builder: (modalCtx) => StatefulBuilder(
         builder: (modalCtx, setModal) {
-          bool isUrgente = tarefa['urgente'] == true;
           return Padding(
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(modalCtx).viewInsets.bottom,
@@ -836,8 +836,9 @@ class HomeScreenState extends State<HomeScreen> {
                       style: GoogleFonts.poppins(),
                     ),
                     value: isUrgente,
-                    onChanged: (value) =>
-                        setModal(() => isUrgente = value ?? false),
+                    onChanged: (value) {
+                      setModal(() => isUrgente = value ?? false);
+                    },
                     controlAffinity: ListTileControlAffinity.leading,
                   ),
                   const SizedBox(height: 20),
