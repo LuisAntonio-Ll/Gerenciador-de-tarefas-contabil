@@ -24,6 +24,7 @@ class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   final ApiService _apiService = ApiService();
   String _usuario = '';
+  int _calendarRefreshKey = 0;
 
   // GlobalKey para chamar refreshData() diretamente no HomeScreen
   // sem precisar fazer setState no MainScreen inteiro
@@ -150,8 +151,11 @@ class _MainScreenState extends State<MainScreen> {
       body: IndexedStack(
         index: _currentIndex,
         children: [
-          HomeScreen(key: _homeKey),
-          CalendarScreen(refreshKey: 0, onRefresh: () {}),
+          HomeScreen(
+            key: _homeKey,
+            onTasksChanged: () => setState(() => _calendarRefreshKey++),
+          ),
+          CalendarScreen(refreshKey: _calendarRefreshKey, onRefresh: () {}),
           const ClientesScreen(),
           const SettingsScreen(),
         ],

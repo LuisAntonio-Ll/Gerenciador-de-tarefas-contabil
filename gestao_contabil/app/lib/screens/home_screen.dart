@@ -4,7 +4,9 @@ import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import '../services/api/api_service.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final VoidCallback? onTasksChanged;
+
+  const HomeScreen({super.key, this.onTasksChanged});
 
   @override
   // Estado PÚBLICO para o GlobalKey do MainScreen chamar refreshData()
@@ -48,6 +50,9 @@ class HomeScreenState extends State<HomeScreen> {
   void refreshData() {
     if (!mounted) return;
     setState(() => _future = _fetchAndCache());
+    // Notifica o pai (MainScreen) para que telas como o Calendário
+    // possam recarregar seus dados.
+    widget.onTasksChanged?.call();
   }
 
   Future<dynamic> _fetchAndCache() async {
