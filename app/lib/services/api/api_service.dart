@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -7,12 +6,13 @@ class ApiService {
   static const String ngrokUrl =
       "https://removable-dorian-frostier.ngrok-free.dev";
 
-  // Use localhost when running in Flutter Web (Chrome) so you can test
-  // the backend running locally (dart_frog dev). For emulators/devices
-  // use the ngrokUrl or 10.0.2.2 as appropriate.
-  final String baseUrl = kIsWeb ? 'http://localhost:8080' : ngrokUrl;
-  // Use ngrok para acessar a API de um dispositivo Android real em modo debug.
-  // O 10.0.2.2 só funciona em emuladores Android.
+  // O build publicado na Vercel precisa alcançar a API por uma URL pública.
+  // Para testar a API localmente no Chrome, execute com:
+  // flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8080
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: ngrokUrl,
+  );
 
   //salva token para não ter que logar toda hora
   Future<Map<String, dynamic>?> login(String username, String password) async {
