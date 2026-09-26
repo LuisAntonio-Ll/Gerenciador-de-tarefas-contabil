@@ -31,7 +31,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF4A47F5),
+      backgroundColor: Theme.of(context).colorScheme.primary,
       body: Padding(
         padding: EdgeInsets.all(30),
         child: Column(
@@ -41,7 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
             Text(
               "Gestão - NR",
               style: TextStyle(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.onPrimary,
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
               ),
@@ -51,7 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
               controller: _userController,
               decoration: InputDecoration(
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: Theme.of(context).colorScheme.surface,
                 hintText: "Usuário",
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(15),
@@ -64,7 +64,7 @@ class _LoginScreenState extends State<LoginScreen> {
               obscureText: true,
               decoration: InputDecoration(
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: Theme.of(context).colorScheme.surface,
                 hintText: "Senha",
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(15),
@@ -78,14 +78,19 @@ class _LoginScreenState extends State<LoginScreen> {
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _handleLogin,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
+                  backgroundColor: Theme.of(context).colorScheme.secondary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadiusGeometry.circular(15),
                   ),
                 ),
                 child: _isLoading
                     ? CircularProgressIndicator()
-                    : Text("ENTRAR", style: TextStyle(color: Colors.white)),
+                    : Text(
+                        "ENTRAR",
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSecondary,
+                        ),
+                      ),
               ),
             ),
           ],

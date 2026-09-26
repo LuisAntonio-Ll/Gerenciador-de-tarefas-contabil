@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   static const String ngrokUrl =
-      "https://removable-dorian-frostier.ngrok-free.dev";
+      "https://outpour-deplete-playmaker.ngrok-free.dev";
 
   // O build publicado na Vercel precisa alcançar a API por uma URL pública.
   // Para testar a API localmente no Chrome, execute com:

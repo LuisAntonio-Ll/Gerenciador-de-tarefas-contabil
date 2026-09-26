@@ -119,13 +119,13 @@ class HomeScreenState extends State<HomeScreen> {
             // Indicador sutil de atualização em andamento (sem bloquear a tela)
             if (snapshot.connectionState == ConnectionState.waiting &&
                 _cachedData != null)
-              const Positioned(
+              Positioned(
                 top: 0,
                 left: 0,
                 right: 0,
                 child: LinearProgressIndicator(
                   backgroundColor: Colors.transparent,
-                  color: Color(0xFF4A47F5),
+                  color: Theme.of(context).colorScheme.primary,
                   minHeight: 2,
                 ),
               ),
@@ -184,7 +184,7 @@ class HomeScreenState extends State<HomeScreen> {
               icon: const Icon(Icons.arrow_back_ios, size: 14),
               label: const Text('Pendentes'),
               style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF4A47F5),
+                foregroundColor: Theme.of(context).colorScheme.primary,
               ),
             ),
         ],
@@ -503,8 +503,8 @@ class HomeScreenState extends State<HomeScreen> {
           children: [
             Text(
               tarefa['tipo'] as String,
-              style: const TextStyle(
-                color: Color(0xFF4A47F5),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.w500,
                 fontSize: 12,
               ),
@@ -648,8 +648,8 @@ class HomeScreenState extends State<HomeScreen> {
           children: [
             Text(
               tarefa['tipo'] as String,
-              style: const TextStyle(
-                color: Color(0xFF4A47F5),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -743,11 +743,11 @@ class HomeScreenState extends State<HomeScreen> {
         children: [
           CircleAvatar(
             radius: 13,
-            backgroundColor: const Color(0xFF4A47F5).withOpacity(0.12),
+            backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.12),
             child: Text(
               initials,
-              style: const TextStyle(
-                color: Color(0xFF4A47F5),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
               ),

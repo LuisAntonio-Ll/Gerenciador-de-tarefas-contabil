@@ -150,7 +150,7 @@ class _CertificadosScreenState extends State<CertificadosScreen> {
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 44),
-                        backgroundColor: const Color(0xFF4A47F5),
+                        backgroundColor: Theme.of(context).colorScheme.primary,
                       ),
                       onPressed: isSaving
                           ? null
@@ -313,7 +313,12 @@ class _CertificadosScreenState extends State<CertificadosScreen> {
                   icon: const Icon(Icons.add),
                   label: const Text('Novo'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4A47F5),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                    textStyle: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],

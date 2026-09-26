@@ -90,12 +90,12 @@ class _MainScreenState extends State<MainScreen> {
       resizeToAvoidBottomInset: false,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
         title: Text(
           _titles[_currentIndex],
           style: GoogleFonts.poppins(
-            color: const Color(0xFF4A47F5),
+            color: Theme.of(context).colorScheme.primary,
             fontWeight: FontWeight.bold,
             letterSpacing: 1.2,
           ),
@@ -162,8 +162,9 @@ class _MainScreenState extends State<MainScreen> {
       floatingActionButton: _currentIndex == 0
           ? FloatingActionButton(
               onPressed: _abrirModalCadastro,
-              backgroundColor: const Color(0xFF4A47F5),
-              child: const Icon(Icons.add, color: Colors.white),
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+              child: const Icon(Icons.add),
             )
           : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
@@ -195,7 +196,12 @@ class _MainScreenState extends State<MainScreen> {
   Widget _navItem(IconData icon, int index) {
     final bool active = _currentIndex == index;
     return IconButton(
-      icon: Icon(icon, color: active ? const Color(0xFF4A47F5) : Colors.grey),
+      icon: Icon(
+        icon,
+        color: active
+        ? Theme.of(context).colorScheme.primary
+        : Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
       onPressed: index >= 0
           ? () => setState(() => _currentIndex = index)
           : null,
@@ -412,10 +418,11 @@ class _MainScreenState extends State<MainScreen> {
                   const SizedBox(height: 8),
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4A47F5),
-                      disabledBackgroundColor: const Color(
-                        0xFF4A47F5,
-                      ).withOpacity(0.5),
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      disabledBackgroundColor: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withOpacity(0.5),
                       minimumSize: const Size(double.infinity, 50),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),

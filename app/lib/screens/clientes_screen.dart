@@ -146,7 +146,7 @@ class ClientesScreenState extends State<ClientesScreen> {
                   const SizedBox(height: 20),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4A47F5),
+                      backgroundColor: Theme.of(context).colorScheme.primary,
                       minimumSize: const Size(double.infinity, 50),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -423,7 +423,7 @@ class ClientesScreenState extends State<ClientesScreen> {
                   const SizedBox(height: 12),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4A47F5),
+                      backgroundColor: Theme.of(context).colorScheme.primary,
                       minimumSize: const Size(double.infinity, 44),
                     ),
                     onPressed: () async {
@@ -744,7 +744,7 @@ class ClientesScreenState extends State<ClientesScreen> {
                             }
                           },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4A47F5),
+                      backgroundColor: Theme.of(context).colorScheme.primary,
                       minimumSize: const Size(double.infinity, 46),
                     ),
                     child: Text(
@@ -862,8 +862,12 @@ class ClientesScreenState extends State<ClientesScreen> {
                   icon: const Icon(Icons.add),
                   label: const Text('Novo'),
                   style: ElevatedButton.styleFrom(
-                    textStyle: const TextStyle(color: Colors.white),
-                    backgroundColor: const Color(0xFF4A47F5),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                    textStyle: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -1002,9 +1006,9 @@ class ClientesScreenState extends State<ClientesScreen> {
                                         cliente['nome'] as String,
                                       ),
                                       tooltip: 'Criar pendências',
-                                      icon: const Icon(
+                                      icon: Icon(
                                         Icons.assignment_late_outlined,
-                                        color: Color(0xFF4A47F5),
+                                        color: Theme.of(context).colorScheme.primary,
                                       ),
                                     ),
                                     PopupMenuButton<String>(

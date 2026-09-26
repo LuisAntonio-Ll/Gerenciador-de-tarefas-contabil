@@ -80,16 +80,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 spacing: 12,
                 children: [
                   _colorOption(
-                    'indigo',
-                    Colors.indigo,
-                    swatch == Colors.indigo,
+                    'blue',
+                    const Color(0xFF0F4C81),
+                    swatch.value == const Color(0xFF0F4C81).value,
                   ),
-                  _colorOption('green', Colors.green, swatch == Colors.green),
-                  _colorOption('teal', Colors.teal, swatch == Colors.teal),
                   _colorOption(
-                    'deepPurple',
+                    'green',
+                    Colors.green,
+                    swatch.value == Colors.green.value,
+                  ),
+                  _colorOption(
+                    'teal',
+                    Colors.teal,
+                    swatch.value == Colors.teal.value,
+                  ),
+                  _colorOption(
+                    'purple',
                     Colors.deepPurple,
-                    swatch == Colors.deepPurple,
+                    swatch.value == Colors.deepPurple.value,
+                  ),
+                  _colorOption(
+                    'orange',
+                    Colors.orange,
+                    swatch.value == Colors.orange.value,
                   ),
                 ],
               );
@@ -100,7 +113,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _colorOption(String key, MaterialColor color, bool selected) {
+  Widget _colorOption(String key, Color color, bool selected) {
     return GestureDetector(
       onTap: () => ThemeManager.setThemeVariant(key),
       child: Container(

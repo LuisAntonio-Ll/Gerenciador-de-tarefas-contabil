@@ -31,8 +31,54 @@ class NrApp extends StatelessWidget {
                   ThemeData.light().textTheme,
                 ),
                 useMaterial3: true,
-                colorScheme: ColorScheme.fromSeed(seedColor: swatch),
-                scaffoldBackgroundColor: const Color(0xFFF8F9FB),
+                colorScheme: ColorScheme.fromSeed(
+                  seedColor: swatch,
+                  brightness: Brightness.light,
+                ),
+                scaffoldBackgroundColor: ColorScheme.fromSeed(
+                  seedColor: swatch,
+                  brightness: Brightness.light,
+                ).surface,
+                appBarTheme: AppBarTheme(
+                  backgroundColor: swatch,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                ),
+                inputDecorationTheme: InputDecorationTheme(
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                elevatedButtonTheme: ElevatedButtonThemeData(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: swatch,
+                    foregroundColor: Colors.white,
+                    textStyle: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.2,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                floatingActionButtonTheme: FloatingActionButtonThemeData(
+                  backgroundColor: swatch,
+                  foregroundColor: Colors.white,
+                ),
+                bottomNavigationBarTheme: BottomNavigationBarThemeData(
+                  selectedItemColor: swatch,
+                  unselectedItemColor: Colors.grey[600],
+                  backgroundColor: Colors.white,
+                ),
+                cardTheme: const CardThemeData(
+                  color: Colors.white,
+                  elevation: 2,
+                  margin: EdgeInsets.zero,
+                ),
               ),
               darkTheme: ThemeData(
                 brightness: Brightness.dark,
@@ -45,10 +91,51 @@ class NrApp extends StatelessWidget {
                   seedColor: swatch,
                   brightness: Brightness.dark,
                 ),
-                scaffoldBackgroundColor: const Color(0xFF121212),
-                appBarTheme: const AppBarTheme(
-                  backgroundColor: Color(0xFF1E1E1E),
+                scaffoldBackgroundColor: ColorScheme.fromSeed(
+                  seedColor: swatch,
+                  brightness: Brightness.dark,
+                ).surface,
+                appBarTheme: AppBarTheme(
+                  backgroundColor: swatch.shade800,
+                  foregroundColor: Colors.white,
                   elevation: 0,
+                ),
+                inputDecorationTheme: InputDecorationTheme(
+                  filled: true,
+                  fillColor: const Color(0xFF1F2937),
+                  labelStyle: TextStyle(color: Colors.grey),
+                  hintStyle: TextStyle(color: Colors.grey),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                elevatedButtonTheme: ElevatedButtonThemeData(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: swatch,
+                    foregroundColor: Colors.white,
+                    textStyle: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.2,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                floatingActionButtonTheme: FloatingActionButtonThemeData(
+                  backgroundColor: swatch,
+                  foregroundColor: Colors.white,
+                ),
+                bottomNavigationBarTheme: BottomNavigationBarThemeData(
+                  selectedItemColor: swatch,
+                  unselectedItemColor: Colors.grey[400],
+                  backgroundColor: const Color(0xFF111827),
+                ),
+                cardTheme: const CardThemeData(
+                  color: Color(0xFF111827),
+                  elevation: 2,
+                  margin: EdgeInsets.zero,
                 ),
               ),
               themeMode: themeMode,
